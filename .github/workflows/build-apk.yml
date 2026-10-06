@@ -1,0 +1,56 @@
+name: Build Android APK
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Copy the app into the Android project
+        run: |
+          mkdir -p android/app/src/main/assets/www/icons
+          cp index.html manifest.webmanifest sw.js android/app/src/main/assets/www/
+          cp icons/*.png android/app/src/main/assets/www/icons/
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.9'
+
+      - name: Build APK
+        working-directory: android
+        run: gradle assembleRelease --no-daemon
+
+      - name: Name the APK
+        run: |
+          mkdir -p out
+          cp android/app/build/outputs/apk/release/app-release.apk "out/TentHillCarromSamaaj-v1.0.${{ github.run_number }}.apk"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: TentHillCarromSamaaj-apk
+          path: out/*.apk
+
+      - name: Publish to Releases
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v1.0.${{ github.run_number }}
+          name: Tent Hill Carrom Samaaj v1.0.${{ github.run_number }}
+          body: |
+            Download the APK below and open it on your Android phone to install.
+            If asked, allow "Install unknown apps" for your browser or Files app.
+            Updating keeps your scores, as long as you don't uninstall first.
+          files: out/*.apk
+          make_latest: true
