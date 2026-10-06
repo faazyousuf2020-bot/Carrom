@@ -1,0 +1,470 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Tent Hill Carrom Samaaj</title>
+<meta name="description" content="Referee scorecard and leaderboard for Tent Hill Carrom Samaaj. All data stays on this device.">
+<meta name="theme-color" content="#4A2A1E">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icons/icon-192.png" type="image/png">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Carrom Samaaj">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@600;800;900&family=Figtree:wght@400;500;600;700&display=swap">
+<style>
+/* Layout: a referee's scorecard — birch board surface, rosewood frame bar, white vs black coin sides, red queen as the only loud colour */
+:root{
+  --birch:#F1E7D3; --panel:#FBF6EC; --frame:#4A2A1E; --frame-ink:#F6EBDD;
+  --ink:#2B1D16; --muted:#7C6A5C; --line:#DCCDB4;
+  --queen:#C2272D; --queen-soft:#F6D9D6;
+  --coinW:#FFFDF8; --coinW-edge:#C9B79B; --coinB:#211915; --coinB-edge:#000;
+  --good:#2F7A45; --warn:#B8741A;
+  --display:"Big Shoulders Display", "Arial Narrow", Impact, sans-serif;
+  --body:"Figtree", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --r:14px;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --birch:#1C1512; --panel:#271D18; --frame:#120C0A; --frame-ink:#EADBC8;
+  --ink:#F1E6D8; --muted:#A8968A; --line:#3E3029;
+  --queen:#E5484D; --queen-soft:#3D1D1E;
+  --coinW:#F4EDE2; --coinW-edge:#8E7F6C; --coinB:#0B0806; --coinB-edge:#5A4B41;
+  --good:#5CB878; --warn:#E0A045; color-scheme:dark;
+}}
+:root[data-theme="dark"]{
+  --birch:#1C1512; --panel:#271D18; --frame:#120C0A; --frame-ink:#EADBC8;
+  --ink:#F1E6D8; --muted:#A8968A; --line:#3E3029;
+  --queen:#E5484D; --queen-soft:#3D1D1E;
+  --coinW:#F4EDE2; --coinW-edge:#8E7F6C; --coinB:#0B0806; --coinB-edge:#5A4B41;
+  --good:#5CB878; --warn:#E0A045; color-scheme:dark;
+}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html{padding-bottom:env(safe-area-inset-bottom,0px)}
+body{margin:0;min-height:100vh;background:var(--birch);color:var(--ink);font-family:var(--body);font-size:15px;line-height:1.45;-webkit-tap-highlight-color:transparent}
+button{font:inherit;color:inherit;cursor:pointer}
+button:focus-visible,input:focus-visible,select:focus-visible{outline:3px solid var(--queen);outline-offset:2px}
+.num{font-variant-numeric:tabular-nums}
+
+header.bar{position:sticky;top:0;z-index:5;background:var(--frame);color:var(--frame-ink);padding:calc(12px + env(safe-area-inset-top,0px)) 16px 0}
+.backup{display:flex;gap:10px;flex-wrap:wrap}
+.backup .btn{flex:1;min-width:140px;text-align:center}
+.filebtn{position:relative;overflow:hidden}
+.filebtn input{position:absolute;inset:0;opacity:0;cursor:pointer}
+.brand{display:flex;align-items:center;gap:10px;max-width:720px;margin:0 auto}
+.brand h1{font-family:var(--display);font-weight:900;font-size:26px;letter-spacing:.02em;margin:0;text-transform:uppercase;line-height:1}
+.brand small{display:block;font-size:11px;letter-spacing:.14em;text-transform:uppercase;opacity:.7}
+.sync{margin-left:auto;font-size:11px;letter-spacing:.08em;text-transform:uppercase;opacity:.75}
+nav.tabs{display:flex;gap:4px;max-width:720px;margin:10px auto 0;overflow-x:auto}
+nav.tabs button{flex:1;background:none;border:0;color:var(--frame-ink);opacity:.65;padding:10px 6px 12px;font-weight:600;font-size:14px;border-bottom:3px solid transparent;white-space:nowrap}
+nav.tabs button[aria-selected="true"]{opacity:1;border-bottom-color:var(--queen)}
+
+main{max-width:720px;margin:0 auto;padding-block:18px 48px;padding-inline:16px;display:flex;flex-direction:column;gap:18px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:16px}
+.label{font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);font-weight:700}
+h2{font-family:var(--display);font-weight:800;font-size:24px;text-transform:uppercase;letter-spacing:.02em;margin:0;text-wrap:balance}
+.muted{color:var(--muted)}
+.row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.stack{display:flex;flex-direction:column;gap:12px}
+
+.btn{border:1.5px solid var(--ink);background:transparent;border-radius:999px;padding:10px 18px;font-weight:700}
+.btn.primary{background:var(--ink);color:var(--panel)}
+.btn.red{background:var(--queen);border-color:var(--queen);color:#fff}
+.btn.ghost{border-color:var(--line)}
+.btn.block{width:100%;padding:14px;font-size:16px}
+.btn:disabled{opacity:.4;cursor:not-allowed}
+.btn.armed{background:var(--queen);border-color:var(--queen);color:#fff}
+
+.coin{width:28px;height:28px;border-radius:50%;display:inline-grid;place-items:center;font-size:11px;font-weight:800;flex:none;position:relative}
+.coin::after{content:"";position:absolute;inset:4px;border-radius:50%;border:1px solid currentColor;opacity:.25}
+.coin.W{background:var(--coinW);color:var(--ink);box-shadow:inset 0 0 0 1.5px var(--coinW-edge)}
+.coin.B{background:var(--coinB);color:#F3E9DC;box-shadow:inset 0 0 0 1.5px var(--coinB-edge)}
+.coin.Q{background:var(--queen);color:#fff}
+.coin.big{width:40px;height:40px;font-size:14px}
+
+/* setup */
+.seg{display:flex;border:1.5px solid var(--line);border-radius:999px;padding:3px;gap:3px}
+.seg button{flex:1;border:0;background:none;border-radius:999px;padding:8px 10px;font-weight:600;color:var(--muted)}
+.seg button[aria-pressed="true"]{background:var(--ink);color:var(--panel)}
+.sides{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.side{border:1.5px dashed var(--line);border-radius:var(--r);padding:12px;display:flex;flex-direction:column;gap:8px;min-width:0}
+.side .head{display:flex;gap:8px;align-items:center;font-weight:700}
+.pick{display:flex;flex-wrap:wrap;gap:6px}
+.chip{border:1.5px solid var(--line);background:var(--panel);border-radius:999px;padding:6px 12px;font-weight:600;font-size:14px}
+.chip[aria-pressed="true"]{border-color:var(--ink);background:var(--ink);color:var(--panel)}
+.chip:disabled{opacity:.3}
+select,input[type=text],input[type=number]{font:inherit;color:var(--ink);background:var(--birch);border:1.5px solid var(--line);border-radius:10px;padding:10px 12px;width:100%}
+
+/* live scoreboard */
+.scoreboard{background:var(--frame);color:var(--frame-ink);border-radius:18px;padding:16px;display:grid;grid-template-columns:1fr auto 1fr;gap:8px;align-items:stretch;position:relative;overflow:hidden}
+.scoreboard::before{content:"";position:absolute;inset:8px;border:1px solid rgba(255,255,255,.12);border-radius:12px;pointer-events:none}
+.team{display:flex;flex-direction:column;align-items:center;gap:6px;text-align:center;min-width:0}
+.team .names{font-weight:700;font-size:14px;line-height:1.2;overflow-wrap:anywhere}
+.team .pts{font-family:var(--display);font-weight:900;font-size:76px;line-height:.9;font-variant-numeric:tabular-nums}
+.team.lead .pts{color:#FFD9A8}
+.mid{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;font-size:11px;letter-spacing:.12em;text-transform:uppercase;opacity:.8;text-align:center}
+.mid b{font-family:var(--display);font-size:28px;letter-spacing:0;opacity:1}
+.track{grid-column:1/-1;height:6px;border-radius:3px;background:rgba(255,255,255,.12);display:flex;justify-content:space-between;position:relative;margin-top:6px}
+.track span{height:100%;border-radius:3px}
+.fouls{display:flex;gap:6px;align-items:center;font-size:12px;opacity:.85}
+.fouls button{background:rgba(255,255,255,.12);border:0;border-radius:999px;padding:4px 10px;color:var(--frame-ink);font-weight:700;font-size:12px}
+
+.entry .winners{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.wbtn{border:2px solid var(--line);background:var(--birch);border-radius:var(--r);padding:12px;display:flex;align-items:center;gap:10px;font-weight:700;text-align:left;min-width:0}
+.wbtn span{overflow-wrap:anywhere}
+.wbtn[aria-pressed="true"]{border-color:var(--ink);background:var(--panel);box-shadow:0 0 0 2px var(--ink)}
+.coins{display:grid;grid-template-columns:repeat(5,1fr);gap:8px}
+.coins button{aspect-ratio:1;border-radius:50%;border:1.5px solid var(--line);background:var(--birch);font-family:var(--display);font-weight:800;font-size:22px;max-width:100%}
+.coins button[aria-pressed="true"]{background:var(--ink);color:var(--panel);border-color:var(--ink)}
+.queenrow{display:flex;align-items:center;gap:12px;border:1.5px solid var(--line);border-radius:var(--r);padding:12px;background:var(--birch)}
+.queenrow[aria-pressed="true"]{border-color:var(--queen);background:var(--queen-soft)}
+.queenrow .txt{flex:1;min-width:0}
+.queenrow .tog{width:48px;height:28px;border-radius:14px;background:var(--line);position:relative;flex:none;transition:background .15s}
+.queenrow .tog::after{content:"";position:absolute;top:3px;left:3px;width:22px;height:22px;border-radius:50%;background:var(--panel);transition:transform .15s}
+.queenrow[aria-pressed="true"] .tog{background:var(--queen)}
+.queenrow[aria-pressed="true"] .tog::after{transform:translateX(20px)}
+.preview{font-family:var(--display);font-weight:800;font-size:20px;text-transform:uppercase}
+
+.boards{width:100%;border-collapse:collapse;font-size:14px}
+.boards th{font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);text-align:left;font-weight:700;padding:6px 4px;border-bottom:1px solid var(--line)}
+.boards td{padding:8px 4px;border-bottom:1px solid var(--line);font-variant-numeric:tabular-nums}
+.boards td:last-child,.boards th:last-child{text-align:right}
+.tbl{overflow-x:auto}
+
+.result{text-align:center;display:flex;flex-direction:column;gap:10px;align-items:center}
+.result .big{font-family:var(--display);font-weight:900;font-size:40px;text-transform:uppercase;line-height:1}
+
+/* leaderboard */
+.podium{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;align-items:end}
+.pod{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:12px 8px;text-align:center;display:flex;flex-direction:column;align-items:center;gap:4px;min-width:0}
+.pod .nm{font-weight:700;overflow-wrap:anywhere;font-size:14px}
+.pod .pp{font-family:var(--display);font-weight:900;font-size:30px;line-height:1}
+.pod.first{padding-block:20px;border-color:var(--queen)}
+.pod.first .pp{color:var(--queen)}
+.lb{width:100%;border-collapse:collapse;font-size:14px;min-width:460px}
+.lb th{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:700;padding:8px 6px;text-align:right;border-bottom:1.5px solid var(--ink)}
+.lb th:nth-child(1),.lb th:nth-child(2){text-align:left}
+.lb td{padding:10px 6px;border-bottom:1px solid var(--line);text-align:right;font-variant-numeric:tabular-nums}
+.lb td:nth-child(1){text-align:left;font-family:var(--display);font-weight:800;font-size:18px;width:28px}
+.lb td:nth-child(2){text-align:left}
+.lb td.pts{font-weight:800;font-size:16px}
+.who{display:flex;align-items:center;gap:8px;font-weight:600}
+.form{display:inline-flex;gap:3px}
+.form i{width:8px;height:8px;border-radius:50%;display:inline-block}
+.form i.w{background:var(--good)} .form i.l{background:var(--line)}
+
+/* history & players */
+.match{display:flex;flex-direction:column;gap:6px;padding-block:12px;border-bottom:1px solid var(--line)}
+.match:last-child{border-bottom:0}
+.match .line{display:flex;justify-content:space-between;gap:10px;align-items:center}
+.match .line .n{font-weight:600;min-width:0;overflow-wrap:anywhere}
+.match .line.win .n{font-weight:800}
+.match .line .s{font-family:var(--display);font-weight:800;font-size:22px;font-variant-numeric:tabular-nums}
+.match .line.win .s{color:var(--queen)}
+.tag{font-size:10px;letter-spacing:.1em;text-transform:uppercase;font-weight:700;border:1px solid var(--line);border-radius:999px;padding:2px 8px;color:var(--muted)}
+.plist{display:flex;flex-direction:column}
+.prow{display:flex;align-items:center;gap:10px;padding-block:10px;border-bottom:1px solid var(--line)}
+.prow:last-child{border-bottom:0}
+.prow .nm{flex:1;font-weight:600;min-width:0;overflow-wrap:anywhere}
+.x{background:none;border:0;color:var(--muted);font-size:13px;padding:6px 8px;border-radius:8px}
+.x.armed{background:var(--queen);color:#fff}
+.empty{text-align:center;padding:28px 12px;color:var(--muted);display:flex;flex-direction:column;align-items:center;gap:10px}
+.rules{font-size:13px;color:var(--muted);margin:0;padding-left:18px;display:flex;flex-direction:column;gap:4px}
+.toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--ink);color:var(--panel);padding:10px 18px;border-radius:999px;font-weight:600;font-size:14px;z-index:20;max-width:calc(100% - 32px);text-align:center}
+@media (max-width:420px){.team .pts{font-size:60px}.sides{grid-template-columns:1fr}}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+</style>
+</head>
+<body>
+<header class="bar">
+  <div class="brand">
+    <span class="coin Q big" aria-hidden="true">Q</span>
+    <div><h1>Tent Hill</h1><small>Carrom Samaaj</small></div>
+    <span class="sync" id="sync">Saved on this phone</span>
+  </div>
+  <nav class="tabs" role="tablist">
+    <button role="tab" id="tab-live" data-tab="live" aria-selected="true">Match</button>
+    <button role="tab" id="tab-table" data-tab="table" aria-selected="false">Leaderboard</button>
+    <button role="tab" id="tab-history" data-tab="history" aria-selected="false">History</button>
+    <button role="tab" id="tab-players" data-tab="players" aria-selected="false">Players</button>
+  </nav>
+</header>
+<main id="app"></main>
+<div class="toast" id="toast" hidden></div>
+
+<script>
+(function(){
+"use strict";
+/* ---------- state ---------- */
+const S = { players:[], matches:[], live:null, tab:"live", ready:false, mode:"local",
+  setup:{type:"singles", A:[], B:[], target:25, maxBoards:8},
+  draft:{w:null, coins:null, queen:false} };
+const LS_KEY="tent-hill-carrom-samaaj-v1";
+
+function uid(){return Math.random().toString(36).slice(2,10)+Date.now().toString(36).slice(-4)}
+function esc(s){return String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))}
+function pName(id){const p=S.players.find(x=>x.id===id);return p?p.name:"Removed player"}
+function initials(n){return n.trim().split(/\s+/).map(w=>w[0]).join("").slice(0,2).toUpperCase()}
+function sideNames(ids){return ids.map(pName).join(" & ")}
+function toast(msg){const t=document.getElementById("toast");t.textContent=msg;t.hidden=false;clearTimeout(toast._t);toast._t=setTimeout(()=>t.hidden=true,2200)}
+
+/* ---------- storage: this phone only (localStorage), nothing leaves the device ---------- */
+function loadLocal(){try{const d=JSON.parse(localStorage.getItem(LS_KEY)||"{}");S.players=d.players||[];S.matches=d.matches||[];S.live=d.live||null}catch(e){}}
+function saveLocal(){localStorage.setItem(LS_KEY,JSON.stringify({players:S.players,matches:S.matches,live:S.live}))}
+
+const store={
+  async savePlayer(p){ S.players.push(p); saveLocal(); render() },
+  async deletePlayer(id){ S.players=S.players.filter(p=>p.id!==id); saveLocal(); render() },
+  async saveMatch(m){ S.matches.push(m); saveLocal(); render() },
+  async deleteMatch(id){ S.matches=S.matches.filter(m=>m.id!==id); saveLocal(); render() },
+  async saveLive(l){ S.live=l; saveLocal(); render() }
+};
+async function safe(fn){try{await fn()}catch(e){toast("Couldn't save on this phone. Free up storage, then try again.")}}
+
+/* backup: a JSON file the referee keeps, to move scores to a new phone or recover after clearing data */
+function exportBackup(){
+  const data={app:"tent-hill-carrom-samaaj",version:1,exportedAt:new Date().toISOString(),players:S.players,matches:S.matches,live:S.live};
+  const blob=new Blob([JSON.stringify(data,null,2)],{type:"application/json"});
+  const a=document.createElement("a"); a.href=URL.createObjectURL(blob);
+  a.download="tent-hill-carrom-backup-"+new Date().toISOString().slice(0,10)+".json";
+  document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(a.href),2000);
+  toast("Backup file saved to Downloads");
+}
+function importBackup(file){
+  const r=new FileReader();
+  r.onload=()=>{try{
+    const d=JSON.parse(r.result);
+    if(d.app!=="tent-hill-carrom-samaaj"||!Array.isArray(d.players)||!Array.isArray(d.matches))throw 0;
+    S.players=d.players; S.matches=d.matches; S.live=d.live||null; saveLocal(); render();
+    toast("Restored "+d.players.length+" players and "+d.matches.length+" matches");
+  }catch(e){toast("That file isn't a Tent Hill backup")}};
+  r.readAsText(file);
+}
+
+async function boot(){
+  loadLocal(); S.ready=true; render();
+  try{ if(navigator.storage&&navigator.storage.persist) await navigator.storage.persist() }catch(e){}
+  if("serviceWorker" in navigator && location.protocol.startsWith("http")){ navigator.serviceWorker.register("sw.js").catch(()=>{}) }
+  if(S.live) keepAwake();
+}
+
+/* ---------- scoring ---------- */
+function totals(l){let A=0,B=0;for(const b of l.boards){if(b.w==="A")A+=b.pts;else B+=b.pts}return{A,B}}
+function queenCounts(l,side){const t=totals(l);return t[side] < l.target-3}
+function boardPts(l,side,coins,queen){return coins+(queen&&queenCounts(l,side)?3:0)}
+function matchOver(l){const t=totals(l);if(t.A>=l.target||t.B>=l.target)return true;if(l.boards.length>=l.maxBoards&&t.A!==t.B)return true;return false}
+function winnerOf(l){const t=totals(l);return t.A>t.B?"A":t.B>t.A?"B":null}
+
+function standings(){
+  const rows={};
+  for(const p of S.players)rows[p.id]={id:p.id,P:0,W:0,L:0,PF:0,PA:0,BW:0,Q:0,form:[]};
+  const ms=[...S.matches].sort((a,b)=>a.endedAt-b.endedAt);
+  for(const m of ms){
+    for(const side of ["A","B"]){
+      const opp=side==="A"?"B":"A";
+      for(const id of m["side"+side]){
+        const r=rows[id]; if(!r)continue;
+        r.P++; const won=m.winner===side; won?r.W++:r.L++;
+        r.PF+=m["score"+side]; r.PA+=m["score"+opp];
+        for(const b of m.boards){ if(b.w===side){r.BW++; if(b.queen&&b.qCounted)r.Q++} }
+        r.form.push(won?"w":"l");
+      }
+    }
+  }
+  return Object.values(rows).map(r=>({...r,pts:r.W*2,diff:r.PF-r.PA,pct:r.P?Math.round(r.W/r.P*100):0,form:r.form.slice(-5)}))
+    .sort((a,b)=>b.pts-a.pts||b.diff-a.diff||b.PF-a.PF||pName(a.id).localeCompare(pName(b.id)));
+}
+
+/* ---------- views ---------- */
+function render(){
+  if(!S.ready)return;
+  document.querySelectorAll("nav.tabs button").forEach(b=>b.setAttribute("aria-selected",b.dataset.tab===S.tab?"true":"false"));
+  const app=document.getElementById("app");
+  app.innerHTML = S.tab==="live"? (S.live? liveView():setupView()) : S.tab==="table"? tableView() : S.tab==="history"? historyView() : playersView();
+}
+
+function setupView(){
+  const st=S.setup, need=st.type==="singles"?1:2;
+  if(S.players.length<2){
+    return `<section class="card empty"><span class="coin Q big">Q</span><h2>Add your players first</h2>
+    <p>You need at least ${need===1?2:4} players to start a ${st.type} match.</p>
+    <button class="btn primary" data-act="goto" data-tab="players">Add players</button></section>`+rulesCard();
+  }
+  const chips=(side)=>S.players.map(p=>{
+    const inThis=st[side].includes(p.id), inOther=st[side==="A"?"B":"A"].includes(p.id);
+    const full=st[side].length>=need&&!inThis;
+    return `<button class="chip" data-act="pick" data-side="${side}" data-id="${p.id}" aria-pressed="${inThis}" ${inOther||full?"disabled":""}>${esc(p.name)}</button>`}).join("");
+  const ok=st.A.length===need&&st.B.length===need;
+  return `<section class="card stack">
+    <div><div class="label">New match</div><h2>Who's on the board?</h2></div>
+    <div class="seg" role="group" aria-label="Match type">
+      <button data-act="type" data-v="singles" aria-pressed="${st.type==="singles"}">Singles</button>
+      <button data-act="type" data-v="doubles" aria-pressed="${st.type==="doubles"}">Doubles</button>
+    </div>
+    <div class="sides">
+      <div class="side"><div class="head"><span class="coin W">W</span>White side <span class="muted num">${st.A.length}/${need}</span></div><div class="pick">${chips("A")}</div></div>
+      <div class="side"><div class="head"><span class="coin B">B</span>Black side <span class="muted num">${st.B.length}/${need}</span></div><div class="pick">${chips("B")}</div></div>
+    </div>
+    <div class="row" style="gap:12px">
+      <label style="flex:1;min-width:130px"><span class="label">Game to</span>
+        <select id="target" data-act="target"><option value="25" ${st.target==25?"selected":""}>25 points</option><option value="29" ${st.target==29?"selected":""}>29 points</option><option value="15" ${st.target==15?"selected":""}>15 points (quick)</option></select></label>
+      <label style="flex:1;min-width:130px"><span class="label">Board limit</span>
+        <select id="maxb" data-act="maxb"><option value="8" ${st.maxBoards==8?"selected":""}>8 boards</option><option value="6" ${st.maxBoards==6?"selected":""}>6 boards</option><option value="12" ${st.maxBoards==12?"selected":""}>12 boards</option><option value="99" ${st.maxBoards==99?"selected":""}>No limit</option></select></label>
+    </div>
+    <button class="btn red block" data-act="start" ${ok?"":"disabled"}>Start match</button>
+  </section>`+rulesCard();
+}
+function rulesCard(){return `<section class="card"><div class="label" style="margin-bottom:8px">How points are counted</div><ul class="rules">
+  <li>The side that pockets all its coins wins the board.</li>
+  <li>Winner scores 1 point for every opponent coin still on the board.</li>
+  <li>Queen covered by the winner adds 3, only while the winner is below ${S.setup.target-3}.</li>
+  <li>First to the target wins. At the board limit, the higher score wins; a tie plays another board.</li>
+  <li>Leaderboard: 2 points per match win, then point difference.</li></ul></section>`}
+
+function liveView(){
+  const l=S.live, t=totals(l), over=matchOver(l), d=S.draft;
+  const lead=t.A>t.B?"A":t.B>t.A?"B":null;
+  const pctA=Math.min(100,t.A/l.target*100), pctB=Math.min(100,t.B/l.target*100);
+  let html=`<section class="scoreboard" aria-live="polite">
+    <div class="team ${lead==="A"?"lead":""}"><span class="coin W big">W</span><div class="names">${esc(sideNames(l.sideA))}</div><div class="pts num">${t.A}</div>
+      <div class="fouls">Fouls <b class="num">${l.fouls.A}</b>${over?"":`<button data-act="foul" data-side="A" aria-label="Add foul to white">+1</button>`}</div></div>
+    <div class="mid">Board<b class="num">${over?l.boards.length:l.boards.length+1}</b>to ${l.target}</div>
+    <div class="team ${lead==="B"?"lead":""}"><span class="coin B big">B</span><div class="names">${esc(sideNames(l.sideB))}</div><div class="pts num">${t.B}</div>
+      <div class="fouls">Fouls <b class="num">${l.fouls.B}</b>${over?"":`<button data-act="foul" data-side="B" aria-label="Add foul to black">+1</button>`}</div></div>
+    <div class="track"><span style="width:${pctA/2}%;background:var(--coinW)"></span><span style="width:${pctB/2}%;background:#8A6E5E"></span></div>
+  </section>`;
+
+  if(over){
+    const w=winnerOf(l);
+    html+=`<section class="card result"><span class="label">Match over</span><div class="big">${esc(sideNames(w==="A"?l.sideA:l.sideB))} win</div>
+      <div class="muted num">${Math.max(t.A,t.B)} – ${Math.min(t.A,t.B)} in ${l.boards.length} boards</div>
+      <button class="btn red block" data-act="save">Save to leaderboard</button>
+      <button class="btn ghost" data-act="undo">Undo last board</button></section>`;
+  } else {
+    const wSide=d.w, qOk=wSide?queenCounts(l,wSide):true;
+    const prev=wSide&&d.coins!==null?boardPts(l,wSide,d.coins,d.queen):null;
+    html+=`<section class="card stack entry">
+      <div><div class="label">Board ${l.boards.length+1} result</div><h2>Who cleared the board?</h2></div>
+      <div class="winners">
+        <button class="wbtn" data-act="dw" data-v="A" aria-pressed="${d.w==="A"}"><span class="coin W">W</span><span>${esc(sideNames(l.sideA))}</span></button>
+        <button class="wbtn" data-act="dw" data-v="B" aria-pressed="${d.w==="B"}"><span class="coin B">B</span><span>${esc(sideNames(l.sideB))}</span></button>
+      </div>
+      <div><div class="label" style="margin-bottom:8px">Opponent coins left on board</div>
+        <div class="coins">${[0,1,2,3,4,5,6,7,8,9].map(n=>`<button class="num" data-act="dc" data-v="${n}" aria-pressed="${d.coins===n}">${n}</button>`).join("")}</div></div>
+      <button class="queenrow" data-act="dq" aria-pressed="${d.queen}"><span class="coin Q">Q</span><span class="txt"><b>Winner covered the queen</b><br><span class="muted" style="font-size:13px">${qOk?"+3 points":"No bonus: winner is already at "+(l.target-3)+" or more"}</span></span><span class="tog" aria-hidden="true"></span></button>
+      <div class="row" style="justify-content:space-between"><span class="preview">${prev===null?"Pick winner and coins":"+"+prev+" to "+(wSide==="A"?"White":"Black")}</span>
+        <button class="btn primary" data-act="record" ${prev===null?"disabled":""}>Record board</button></div>
+    </section>`;
+  }
+  if(l.boards.length){
+    let a=0,b=0;
+    html+=`<section class="card"><div class="row" style="justify-content:space-between;margin-bottom:6px"><div class="label">Board by board</div>${over?"":`<button class="x" data-act="undo">Undo last</button>`}</div><div class="tbl"><table class="boards"><thead><tr><th>#</th><th>Won by</th><th>Coins</th><th>Queen</th><th>Score</th></tr></thead><tbody>${
+      l.boards.map((x,i)=>{x.w==="A"?a+=x.pts:b+=x.pts;return `<tr><td>${i+1}</td><td><span class="coin ${x.w==="A"?"W":"B"}" style="width:20px;height:20px;vertical-align:middle"></span></td><td>${x.coins}</td><td>${x.queen?(x.qCounted?"+3":"no bonus"):"–"}</td><td><b>${a} – ${b}</b></td></tr>`}).join("")
+    }</tbody></table></div></section>`;
+  }
+  html+=`<button class="btn ghost" data-act="abandon" id="abandon">Abandon match</button>`;
+  return html;
+}
+
+function tableView(){
+  const rows=standings().filter(r=>r.P>0);
+  if(!rows.length)return `<section class="card empty"><span class="coin Q big">Q</span><h2>No results yet</h2><p>Saved matches build the table here.</p><button class="btn primary" data-act="goto" data-tab="live">Start a match</button></section>`;
+  const top=rows.slice(0,3);
+  const order=top.length===3?[top[1],top[0],top[2]]:top;
+  const pod=order.map(r=>{const rank=rows.indexOf(r)+1;return `<div class="pod ${rank===1?"first":""}"><span class="coin ${rank===1?"Q":rank===2?"W":"B"}">${rank}</span><div class="nm">${esc(pName(r.id))}</div><div class="pp num">${r.pts}</div><div class="muted" style="font-size:12px">${r.W}W · ${r.L}L</div></div>`}).join("");
+  return `<section class="podium" ${top.length<3?'style="grid-template-columns:repeat('+top.length+',1fr)"':""}>${pod}</section>
+  <section class="card"><div class="tbl"><table class="lb"><thead><tr><th>#</th><th>Player</th><th>P</th><th>W</th><th>L</th><th>+/–</th><th>Q</th><th>Form</th><th>Pts</th></tr></thead><tbody>${
+    rows.map((r,i)=>`<tr><td>${i+1}</td><td><span class="who"><span class="coin W" style="width:24px;height:24px;font-size:10px">${esc(initials(pName(r.id)))}</span>${esc(pName(r.id))}</span></td><td>${r.P}</td><td>${r.W}</td><td>${r.L}</td><td>${r.diff>0?"+":""}${r.diff}</td><td>${r.Q}</td><td><span class="form">${r.form.map(f=>`<i class="${f}" title="${f==="w"?"Won":"Lost"}"></i>`).join("")}</span></td><td class="pts">${r.pts}</td></tr>`).join("")
+  }</tbody></table></div>
+  <p class="muted" style="font-size:12px;margin:10px 0 0">P played · W won · L lost · +/– carrom points for minus against · Q queens covered for points · Pts = 2 per win</p></section>`;
+}
+
+function historyView(){
+  const ms=[...S.matches].sort((a,b)=>b.endedAt-a.endedAt);
+  if(!ms.length)return `<section class="card empty"><h2>No matches saved</h2><p>Finished matches appear here with their board-by-board scores.</p></section>`;
+  const fmt=new Intl.DateTimeFormat(undefined,{day:"numeric",month:"short",hour:"numeric",minute:"2-digit"});
+  return `<section class="card">${ms.map(m=>`<div class="match">
+    <div class="row" style="justify-content:space-between"><span class="label">${fmt.format(new Date(m.endedAt))} · ${m.boards.length} boards</span><span class="row" style="gap:6px"><span class="tag">${m.type}</span><button class="x" data-act="delmatch" data-id="${m.id}">Delete</button></span></div>
+    <div class="line ${m.winner==="A"?"win":""}"><span class="row" style="gap:8px;flex-wrap:nowrap;min-width:0"><span class="coin W" style="width:20px;height:20px"></span><span class="n">${esc(sideNames(m.sideA))}</span></span><span class="s">${m.scoreA}</span></div>
+    <div class="line ${m.winner==="B"?"win":""}"><span class="row" style="gap:8px;flex-wrap:nowrap;min-width:0"><span class="coin B" style="width:20px;height:20px"></span><span class="n">${esc(sideNames(m.sideB))}</span></span><span class="s">${m.scoreB}</span></div>
+  </div>`).join("")}</section>`;
+}
+
+function playersView(){
+  const played=new Set(S.matches.flatMap(m=>[...m.sideA,...m.sideB]));
+  const live=S.live?new Set([...S.live.sideA,...S.live.sideB]):new Set();
+  return `<section class="card stack"><div><div class="label">Squad</div><h2>Players</h2></div>
+    <form id="addform" class="row" style="flex-wrap:nowrap"><input type="text" id="newname" placeholder="Friend's name" maxlength="24" autocomplete="off" aria-label="Player name"><button class="btn primary" type="submit">Add</button></form>
+    ${S.players.length?`<div class="plist">${[...S.players].sort((a,b)=>a.name.localeCompare(b.name)).map(p=>`<div class="prow"><span class="coin W">${esc(initials(p.name))}</span><span class="nm">${esc(p.name)}</span>${played.has(p.id)||live.has(p.id)?`<span class="muted" style="font-size:12px">${played.has(p.id)?"has results":"in a match"}</span>`:`<button class="x" data-act="delplayer" data-id="${p.id}">Remove</button>`}</div>`).join("")}</div>`
+    :`<p class="muted" style="margin:0">No players yet. Add everyone who plays, then pick sides on the Match tab.</p>`}
+  </section>
+  <section class="card stack"><div><div class="label">Your data</div><h2>Backup</h2></div>
+    <p class="muted" style="margin:0">Scores are saved only on this phone. Save a backup now and then, so you can restore it if you clear the browser or change phones.</p>
+    <div class="backup"><button class="btn primary" data-act="export">Save backup</button>
+      <label class="btn ghost filebtn" for="restore">Restore backup<input type="file" id="restore" accept="application/json,.json"></label></div>
+    <p class="muted" style="margin:0;font-size:12px">${S.players.length} players · ${S.matches.length} matches stored</p>
+  </section>`;
+}
+
+/* ---------- arm-to-confirm (no native dialogs here) ---------- */
+function armed(btn,label){ if(btn.dataset.armed==="1")return true; btn.dataset.armed="1"; const old=btn.textContent; btn.textContent=label; btn.classList.add("armed"); setTimeout(()=>{if(btn.isConnected){btn.dataset.armed="";btn.textContent=old;btn.classList.remove("armed")}},3000); return false }
+
+/* ---------- events ---------- */
+let wake=null;
+async function keepAwake(){try{if(navigator.wakeLock&&!wake){wake=await navigator.wakeLock.request("screen");wake.addEventListener("release",()=>wake=null)}}catch(e){}}
+
+document.querySelector("nav.tabs").addEventListener("click",e=>{const b=e.target.closest("button[data-tab]");if(b){S.tab=b.dataset.tab;render();window.scrollTo(0,0)}});
+
+document.getElementById("app").addEventListener("change",e=>{
+  if(e.target.id==="target"){S.setup.target=+e.target.value;render()}
+  if(e.target.id==="maxb"){S.setup.maxBoards=+e.target.value;render()}
+  if(e.target.id==="restore"&&e.target.files[0]){importBackup(e.target.files[0])}
+});
+document.getElementById("app").addEventListener("submit",e=>{
+  if(e.target.id!=="addform")return; e.preventDefault();
+  const inp=document.getElementById("newname"); const name=inp.value.trim().replace(/\s+/g," ");
+  if(!name){toast("Type a name first");return}
+  if(S.players.some(p=>p.name.toLowerCase()===name.toLowerCase())){toast(name+" is already on the list");return}
+  safe(()=>store.savePlayer({id:uid(),name,createdAt:Date.now()})).then(()=>{const i=document.getElementById("newname");if(i){i.value="";i.focus()}});
+});
+
+document.getElementById("app").addEventListener("click",e=>{
+  const b=e.target.closest("[data-act]"); if(!b||b.tagName==="SELECT")return;
+  const act=b.dataset.act, st=S.setup, d=S.draft;
+  switch(act){
+    case "goto": S.tab=b.dataset.tab; render(); break;
+    case "type": st.type=b.dataset.v; st.A=[]; st.B=[]; render(); break;
+    case "pick": { const arr=st[b.dataset.side], id=b.dataset.id, i=arr.indexOf(id); i>=0?arr.splice(i,1):arr.push(id); render(); break }
+    case "start": {
+      const l={type:st.type,sideA:[...st.A],sideB:[...st.B],target:st.target,maxBoards:st.maxBoards,boards:[],fouls:{A:0,B:0},startedAt:Date.now()};
+      S.draft={w:null,coins:null,queen:false}; safe(()=>store.saveLive(l)); keepAwake(); break }
+    case "dw": d.w=b.dataset.v; render(); break;
+    case "dc": d.coins=+b.dataset.v; render(); break;
+    case "dq": d.queen=!d.queen; render(); break;
+    case "record": {
+      if(!d.w||d.coins===null)return;
+      const l=structuredClone(S.live); const qc=d.queen&&queenCounts(l,d.w);
+      l.boards.push({w:d.w,coins:d.coins,queen:d.queen,qCounted:qc,pts:boardPts(l,d.w,d.coins,d.queen)});
+      S.draft={w:null,coins:null,queen:false};
+      safe(()=>store.saveLive(l)); window.scrollTo({top:0,behavior:"smooth"}); keepAwake(); break }
+    case "foul": { const l=structuredClone(S.live); l.fouls[b.dataset.side]++; safe(()=>store.saveLive(l)); break }
+    case "undo": { const l=structuredClone(S.live); l.boards.pop(); safe(()=>store.saveLive(l)); toast("Last board removed"); break }
+    case "abandon": if(armed(b,"Tap again to abandon")){ safe(()=>store.saveLive(null)); toast("Match abandoned") } break;
+    case "save": {
+      const l=S.live, t=totals(l);
+      const m={id:uid(),type:l.type,sideA:l.sideA,sideB:l.sideB,target:l.target,boards:l.boards,fouls:l.fouls,scoreA:t.A,scoreB:t.B,winner:winnerOf(l),startedAt:l.startedAt,endedAt:Date.now()};
+      safe(async()=>{await store.saveMatch(m);await store.saveLive(null);S.setup.A=[];S.setup.B=[];S.tab="table";render();toast("Saved. Table updated.")}); break }
+    case "delmatch": if(armed(b,"Tap to delete")) safe(()=>store.deleteMatch(b.dataset.id)); break;
+    case "delplayer": if(armed(b,"Tap to remove")) safe(()=>store.deletePlayer(b.dataset.id)); break;
+    case "export": exportBackup(); break;
+  }
+});
+document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="visible"&&S.live)keepAwake()});
+
+boot();
+})();
+</script>
+</body>
+</html>
