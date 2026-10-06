@@ -12,7 +12,7 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Copy the app into the Android project
         run: |
@@ -20,7 +20,7 @@ jobs:
           cp index.html manifest.webmanifest sw.js android/app/src/main/assets/www/
           cp icons/*.png android/app/src/main/assets/www/icons/
 
-      - uses: actions/setup-java@v4
+      - uses: actions/setup-java@v5
         with:
           distribution: temurin
           java-version: '17'
@@ -31,7 +31,12 @@ jobs:
 
       - name: Build APK
         working-directory: android
-        run: gradle assembleRelease --no-daemon
+        run: |
+          set -o pipefail
+          if ! gradle assembleRelease --no-daemon --stacktrace 2>&1 | tee build.log; then
+            grep -E "What went wrong|error:|Error|Exception|Could not|> " build.log | head -40 | while IFS= read -r line; do echo "::error::$line"; done
+            exit 1
+          fi
 
       - name: Name the APK
         run: |
