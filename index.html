@@ -111,6 +111,17 @@ select,input[type=text],input[type=number]{font:inherit;color:var(--ink);backgro
 .fouls{display:flex;gap:6px;align-items:center;font-size:12px;opacity:.85}
 .fouls button{background:rgba(255,255,255,.12);border:0;border-radius:999px;padding:4px 10px;color:var(--frame-ink);font-weight:700;font-size:12px}
 
+.pads{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.pad{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:10px;display:flex;flex-direction:column;gap:8px;min-width:0}
+.padname{display:flex;align-items:center;gap:8px;font-weight:700;font-size:14px;min-width:0}
+.padname span:last-child{overflow-wrap:anywhere}
+.tap{display:flex;align-items:center;justify-content:center;gap:8px;border-radius:12px;border:1.5px solid var(--line);background:var(--birch);font-weight:700;font-size:16px;padding:12px 8px;touch-action:manipulation}
+.tap b{font-family:var(--display);font-size:20px}
+.tap:active{transform:scale(.97)}
+.coinbtn{min-height:96px;font-size:20px;background:var(--ink);color:var(--panel);border-color:var(--ink)}
+.coinbtn b{font-size:28px}
+.queenbtn{border-color:var(--queen);color:var(--queen);background:var(--queen-soft)}
+.foulbtn{font-size:14px;color:var(--muted)}
 .entry .winners{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 .wbtn{border:2px solid var(--line);background:var(--birch);border-radius:var(--r);padding:12px;display:flex;align-items:center;gap:10px;font-weight:700;text-align:left;min-width:0}
 .wbtn span{overflow-wrap:anywhere}
@@ -199,9 +210,9 @@ select,input[type=text],input[type=number]{font:inherit;color:var(--ink);backgro
 "use strict";
 /* ---------- state ---------- */
 const S = { players:[], teams:[], matches:[], live:null, tab:"live", ready:false, board:"players",
-  setup:{type:"singles", A:[], B:[], tA:null, tB:null, target:25, maxBoards:8},
+  setup:{type:"singles", A:[], B:[], tA:null, tB:null, target:25},
   teamDraft:[],
-  draft:{w:null, coins:null, queen:false} };
+  };
 const LS_KEY="tent-hill-carrom-samaaj-v1";
 
 function uid(){return Math.random().toString(36).slice(2,10)+Date.now().toString(36).slice(-4)}
@@ -261,11 +272,16 @@ async function boot(){
 }
 
 /* ---------- scoring ---------- */
-function totals(l){let A=0,B=0;for(const b of l.boards){if(b.w==="A")A+=b.pts;else B+=b.pts}return{A,B}}
-function queenCounts(l,side){const t=totals(l);return t[side] < l.target-3}
-function boardPts(l,side,coins,queen){return coins+(queen&&queenCounts(l,side)?3:0)}
-function matchOver(l){const t=totals(l);if(t.A>=l.target||t.B>=l.target)return true;if(l.boards.length>=l.maxBoards&&t.A!==t.B)return true;return false}
+/* Simple tap scoring: every pocket is one event. Coin +1, Queen +3, Foul -1. */
+const PTS={coin:1,queen:3,foul:-1};
+function totals(l){let A=0,B=0;
+  for(const b of (l.boards||[])){if(b.w==="A")A+=b.pts;else B+=b.pts}
+  for(const e of (l.events||[])){if(e.side==="A")A+=e.pts;else B+=e.pts}
+  return{A,B}}
+function count(l,side,kind){return (l.events||[]).filter(e=>e.side===side&&e.kind===kind).length}
+function matchOver(l){const t=totals(l);if(l.finished)return true;return l.target>0&&(t.A>=l.target||t.B>=l.target)}
 function winnerOf(l){const t=totals(l);return t.A>t.B?"A":t.B>t.A?"B":null}
+function queensFor(m,side){let q=0;for(const b of (m.boards||[]))if(b.w===side&&b.queen&&b.qCounted)q++;return q+count(m,side,"queen")}
 
 function standings(){
   const rows={};
@@ -278,7 +294,7 @@ function standings(){
         const r=rows[id]; if(!r)continue;
         r.P++; const won=m.winner===side; won?r.W++:r.L++;
         r.PF+=m["score"+side]; r.PA+=m["score"+opp];
-        for(const b of m.boards){ if(b.w===side){r.BW++; if(b.queen&&b.qCounted)r.Q++} }
+        r.Q+=queensFor(m,side);
         r.form.push(won?"w":"l");
       }
     }
@@ -295,7 +311,7 @@ function teamStandings(){
       const r=rows[m["team"+side]]; if(!r)continue; const opp=side==="A"?"B":"A";
       r.P++; const won=m.winner===side; won?r.W++:r.L++;
       r.PF+=m["score"+side]; r.PA+=m["score"+opp];
-      for(const b of m.boards) if(b.w===side&&b.queen&&b.qCounted) r.Q++;
+      r.Q+=queensFor(m,side);
       r.form.push(won?"w":"l");
     }
   }
@@ -340,12 +356,8 @@ function setupView(){
     <button class="btn red block" data-act="start" ${ok?"":"disabled"}>Start match</button>
   </section>`+rulesCard();
 }
-function gameOpts(){const st=S.setup;return `<div class="row" style="gap:12px">
-      <label style="flex:1;min-width:130px"><span class="label">Game to</span>
-        <select id="target" data-act="target"><option value="25" ${st.target==25?"selected":""}>25 points</option><option value="29" ${st.target==29?"selected":""}>29 points</option><option value="15" ${st.target==15?"selected":""}>15 points (quick)</option></select></label>
-      <label style="flex:1;min-width:130px"><span class="label">Board limit</span>
-        <select id="maxb" data-act="maxb"><option value="8" ${st.maxBoards==8?"selected":""}>8 boards</option><option value="6" ${st.maxBoards==6?"selected":""}>6 boards</option><option value="12" ${st.maxBoards==12?"selected":""}>12 boards</option><option value="99" ${st.maxBoards==99?"selected":""}>No limit</option></select></label>
-    </div>`}
+function gameOpts(){const st=S.setup;return `<label><span class="label">Play to</span>
+        <select id="target" data-act="target">${[[25,"25 points"],[29,"29 points"],[15,"15 points (quick)"],[50,"50 points"],[0,"No target, I'll finish it"]].map(([v,t])=>`<option value="${v}" ${st.target==v?"selected":""}>${t}</option>`).join("")}</select></label>`}
 function teamSetupView(seg){
   const st=S.setup;
   if(S.teams.length<2) return `<section class="card stack"><div><div class="label">New match</div><h2>Team vs team</h2></div>${seg}
@@ -366,53 +378,47 @@ function teamSetupView(seg){
     <button class="btn red block" data-act="start" ${st.tA&&st.tB?"":"disabled"}>Start match</button>
   </section>`+rulesCard();
 }
-function rulesCard(){return `<section class="card"><div class="label" style="margin-bottom:8px">How points are counted</div><ul class="rules">
-  <li>The side that pockets all its coins wins the board.</li>
-  <li>Winner scores 1 point for every opponent coin still on the board.</li>
-  <li>Queen covered by the winner adds 3, only while the winner is below ${S.setup.target-3}.</li>
-  <li>First to the target wins. At the board limit, the higher score wins; a tie plays another board.</li>
+function rulesCard(){return `<section class="card"><div class="label" style="margin-bottom:8px">How scoring works</div><ul class="rules">
+  <li>Tap <b>Coin</b> each time a side pockets a coin: +1.</li>
+  <li>Tap <b>Queen</b> when a side pockets the queen: +3.</li>
+  <li>Tap <b>Foul</b> when a side fouls, e.g. pockets the striker: −1.</li>
+  <li>First side to the target wins. You can also tap <b>Finish match</b> any time.</li>
   <li>Leaderboard: 2 points per match win, then point difference.</li></ul></section>`}
 
 function liveView(){
-  const l=S.live, t=totals(l), over=matchOver(l), d=S.draft;
+  const l=S.live, t=totals(l), over=matchOver(l);
   const lead=t.A>t.B?"A":t.B>t.A?"B":null;
-  const pctA=Math.min(100,t.A/l.target*100), pctB=Math.min(100,t.B/l.target*100);
-  let html=`<section class="scoreboard" aria-live="polite">
-    <div class="team ${lead==="A"?"lead":""}"><span class="coin W big">W</span><div class="names">${esc(label(l,"A"))}${l.teamA?`<br><span style="font-weight:500;opacity:.7;font-size:12px">${esc(sideNames(l.sideA))}</span>`:""}</div><div class="pts num">${t.A}</div>
-      <div class="fouls">Fouls <b class="num">${l.fouls.A}</b>${over?"":`<button data-act="foul" data-side="A" aria-label="Add foul to white">+1</button>`}</div></div>
-    <div class="mid">Board<b class="num">${over?l.boards.length:l.boards.length+1}</b>to ${l.target}</div>
-    <div class="team ${lead==="B"?"lead":""}"><span class="coin B big">B</span><div class="names">${esc(label(l,"B"))}${l.teamB?`<br><span style="font-weight:500;opacity:.7;font-size:12px">${esc(sideNames(l.sideB))}</span>`:""}</div><div class="pts num">${t.B}</div>
-      <div class="fouls">Fouls <b class="num">${l.fouls.B}</b>${over?"":`<button data-act="foul" data-side="B" aria-label="Add foul to black">+1</button>`}</div></div>
+  const tgt=l.target>0?l.target:Math.max(t.A,t.B,1);
+  const pctA=Math.max(0,Math.min(100,t.A/tgt*100)), pctB=Math.max(0,Math.min(100,t.B/tgt*100));
+  const team=side=>`<div class="team ${lead===side?"lead":""}"><span class="coin ${side==="A"?"W":"B"} big">${side==="A"?"W":"B"}</span><div class="names">${esc(label(l,side))}${l["team"+side]?`<br><span style="font-weight:500;opacity:.7;font-size:12px">${esc(sideNames(l["side"+side]))}</span>`:""}</div><div class="pts num">${t[side]}</div>
+      <div class="fouls num">${count(l,side,"coin")} coins · ${count(l,side,"queen")} Q · ${count(l,side,"foul")} fouls</div></div>`;
+  let html=`<section class="scoreboard" aria-live="polite">${team("A")}
+    <div class="mid">${l.target>0?`Play to<b class="num">${l.target}</b>`:`<b>VS</b>`}</div>${team("B")}
     <div class="track"><span style="width:${pctA/2}%;background:var(--coinW)"></span><span style="width:${pctB/2}%;background:#8A6E5E"></span></div>
   </section>`;
 
   if(over){
     const w=winnerOf(l);
     html+=`<section class="card result"><span class="label">Match over</span><div class="big">${esc(label(l,w))} win</div>
-      <div class="muted num">${Math.max(t.A,t.B)} – ${Math.min(t.A,t.B)} in ${l.boards.length} boards</div>
+      <div class="muted num">${Math.max(t.A,t.B)} – ${Math.min(t.A,t.B)}</div>
       <button class="btn red block" data-act="save">Save to leaderboard</button>
-      <button class="btn ghost" data-act="undo">Undo last board</button></section>`;
+      <button class="btn ghost" data-act="undo">Undo last tap</button></section>`;
   } else {
-    const wSide=d.w, qOk=wSide?queenCounts(l,wSide):true;
-    const prev=wSide&&d.coins!==null?boardPts(l,wSide,d.coins,d.queen):null;
-    html+=`<section class="card stack entry">
-      <div><div class="label">Board ${l.boards.length+1} result</div><h2>Who cleared the board?</h2></div>
-      <div class="winners">
-        <button class="wbtn" data-act="dw" data-v="A" aria-pressed="${d.w==="A"}"><span class="coin W">W</span><span>${esc(label(l,"A"))}</span></button>
-        <button class="wbtn" data-act="dw" data-v="B" aria-pressed="${d.w==="B"}"><span class="coin B">B</span><span>${esc(label(l,"B"))}</span></button>
-      </div>
-      <div><div class="label" style="margin-bottom:8px">Opponent coins left on board</div>
-        <div class="coins">${[0,1,2,3,4,5,6,7,8,9].map(n=>`<button class="num" data-act="dc" data-v="${n}" aria-pressed="${d.coins===n}">${n}</button>`).join("")}</div></div>
-      <button class="queenrow" data-act="dq" aria-pressed="${d.queen}"><span class="coin Q">Q</span><span class="txt"><b>Winner covered the queen</b><br><span class="muted" style="font-size:13px">${qOk?"+3 points":"No bonus: winner is already at "+(l.target-3)+" or more"}</span></span><span class="tog" aria-hidden="true"></span></button>
-      <div class="row" style="justify-content:space-between"><span class="preview">${prev===null?"Pick winner and coins":"+"+prev+" to "+(wSide==="A"?"White":"Black")}</span>
-        <button class="btn primary" data-act="record" ${prev===null?"disabled":""}>Record board</button></div>
-    </section>`;
+    const pad=side=>`<div class="pad ${side}">
+        <div class="padname"><span class="coin ${side==="A"?"W":"B"}">${side==="A"?"W":"B"}</span><span>${esc(label(l,side))}</span></div>
+        <button class="tap coinbtn" data-act="add" data-side="${side}" data-kind="coin"><span class="coin ${side==="A"?"W":"B"}"></span>Coin <b>+1</b></button>
+        <button class="tap queenbtn" data-act="add" data-side="${side}" data-kind="queen"><span class="coin Q">Q</span>Queen <b>+3</b></button>
+        <button class="tap foulbtn" data-act="add" data-side="${side}" data-kind="foul">Foul <b>−1</b></button>
+      </div>`;
+    html+=`<section class="pads">${pad("A")}${pad("B")}</section>
+    <div class="row" style="gap:10px"><button class="btn ghost" style="flex:1" data-act="undo" ${(l.events||[]).length?"":"disabled"}>Undo last tap</button>
+      <button class="btn primary" style="flex:1" data-act="finish">Finish match</button></div>`;
   }
-  if(l.boards.length){
-    let a=0,b=0;
-    html+=`<section class="card"><div class="row" style="justify-content:space-between;margin-bottom:6px"><div class="label">Board by board</div>${over?"":`<button class="x" data-act="undo">Undo last</button>`}</div><div class="tbl"><table class="boards"><thead><tr><th>#</th><th>Won by</th><th>Coins</th><th>Queen</th><th>Score</th></tr></thead><tbody>${
-      l.boards.map((x,i)=>{x.w==="A"?a+=x.pts:b+=x.pts;return `<tr><td>${i+1}</td><td><span class="coin ${x.w==="A"?"W":"B"}" style="width:20px;height:20px;vertical-align:middle"></span></td><td>${x.coins}</td><td>${x.queen?(x.qCounted?"+3":"no bonus"):"–"}</td><td><b>${a} – ${b}</b></td></tr>`}).join("")
-    }</tbody></table></div></section>`;
+  const ev=l.events||[];
+  if(ev.length){
+    const names={coin:"Coin",queen:"Queen",foul:"Foul"};
+    let a=0,b=0; const rows=ev.map(e=>{e.side==="A"?a+=e.pts:b+=e.pts;return `<tr><td><span class="coin ${e.side==="A"?"W":"B"}" style="width:18px;height:18px;vertical-align:middle"></span> ${esc(label(l,e.side))}</td><td>${names[e.kind]}</td><td>${e.pts>0?"+":"−"}${Math.abs(e.pts)}</td><td><b>${a} – ${b}</b></td></tr>`});
+    html+=`<section class="card"><div class="label" style="margin-bottom:6px">Every tap, latest first</div><div class="tbl"><table class="boards"><thead><tr><th>Side</th><th>What</th><th>Pts</th><th>Score</th></tr></thead><tbody>${rows.reverse().slice(0,40).join("")}</tbody></table></div></section>`;
   }
   html+=`<button class="btn ghost" data-act="abandon" id="abandon">Abandon match</button>`;
   return html;
@@ -438,7 +444,7 @@ function historyView(){
   if(!ms.length)return `<section class="card empty"><h2>No matches saved</h2><p>Finished matches appear here with their board-by-board scores.</p></section>`;
   const fmt=new Intl.DateTimeFormat(undefined,{day:"numeric",month:"short",hour:"numeric",minute:"2-digit"});
   return `<section class="card">${ms.map(m=>`<div class="match">
-    <div class="row" style="justify-content:space-between"><span class="label">${fmt.format(new Date(m.endedAt))} · ${m.boards.length} boards</span><span class="row" style="gap:6px"><span class="tag">${m.type}</span><button class="x" data-act="delmatch" data-id="${m.id}">Delete</button></span></div>
+    <div class="row" style="justify-content:space-between"><span class="label">${fmt.format(new Date(m.endedAt))} · ${m.events?m.events.length+" taps":(m.boards||[]).length+" boards"}</span><span class="row" style="gap:6px"><span class="tag">${m.type}</span><button class="x" data-act="delmatch" data-id="${m.id}">Delete</button></span></div>
     <div class="line ${m.winner==="A"?"win":""}"><span class="row" style="gap:8px;flex-wrap:nowrap;min-width:0"><span class="coin W" style="width:20px;height:20px"></span><span class="n">${esc(label(m,"A"))}</span></span><span class="s">${m.scoreA}</span></div>
     <div class="line ${m.winner==="B"?"win":""}"><span class="row" style="gap:8px;flex-wrap:nowrap;min-width:0"><span class="coin B" style="width:20px;height:20px"></span><span class="n">${esc(label(m,"B"))}</span></span><span class="s">${m.scoreB}</span></div>
   </div>`).join("")}</section>`;
@@ -486,7 +492,6 @@ document.querySelector("nav.tabs").addEventListener("click",e=>{const b=e.target
 
 document.getElementById("app").addEventListener("change",e=>{
   if(e.target.id==="target"){S.setup.target=+e.target.value;render()}
-  if(e.target.id==="maxb"){S.setup.maxBoards=+e.target.value;render()}
   if(e.target.id==="restore"&&e.target.files[0]){importBackup(e.target.files[0])}
 });
 document.getElementById("app").addEventListener("submit",e=>{
@@ -507,7 +512,7 @@ document.getElementById("app").addEventListener("submit",e=>{
 
 document.getElementById("app").addEventListener("click",e=>{
   const b=e.target.closest("[data-act]"); if(!b||b.tagName==="SELECT")return;
-  const act=b.dataset.act, st=S.setup, d=S.draft;
+  const act=b.dataset.act, st=S.setup;
   switch(act){
     case "goto": S.tab=b.dataset.tab; render(); break;
     case "type": st.type=b.dataset.v; st.A=[]; st.B=[]; st.tA=null; st.tB=null; render(); break;
@@ -519,23 +524,22 @@ document.getElementById("app").addEventListener("click",e=>{
     case "start": {
       const isT=st.type==="teams", TA=isT&&S.teams.find(t=>t.id===st.tA), TB=isT&&S.teams.find(t=>t.id===st.tB);
       if(isT&&(!TA||!TB))return;
-      const l={type:st.type,teamA:isT?TA.id:null,teamB:isT?TB.id:null,sideA:isT?[...TA.members]:[...st.A],sideB:isT?[...TB.members]:[...st.B],target:st.target,maxBoards:st.maxBoards,boards:[],fouls:{A:0,B:0},startedAt:Date.now()};
-      S.draft={w:null,coins:null,queen:false}; safe(()=>store.saveLive(l)); keepAwake(); break }
-    case "dw": d.w=b.dataset.v; render(); break;
-    case "dc": d.coins=+b.dataset.v; render(); break;
-    case "dq": d.queen=!d.queen; render(); break;
-    case "record": {
-      if(!d.w||d.coins===null)return;
-      const l=structuredClone(S.live); const qc=d.queen&&queenCounts(l,d.w);
-      l.boards.push({w:d.w,coins:d.coins,queen:d.queen,qCounted:qc,pts:boardPts(l,d.w,d.coins,d.queen)});
-      S.draft={w:null,coins:null,queen:false};
-      safe(()=>store.saveLive(l)); window.scrollTo({top:0,behavior:"smooth"}); keepAwake(); break }
-    case "foul": { const l=structuredClone(S.live); l.fouls[b.dataset.side]++; safe(()=>store.saveLive(l)); break }
-    case "undo": { const l=structuredClone(S.live); l.boards.pop(); safe(()=>store.saveLive(l)); toast("Last board removed"); break }
+      const l={type:st.type,teamA:isT?TA.id:null,teamB:isT?TB.id:null,sideA:isT?[...TA.members]:[...st.A],sideB:isT?[...TB.members]:[...st.B],target:st.target,events:[],startedAt:Date.now()};
+      safe(()=>store.saveLive(l)); keepAwake(); break }
+    case "add": {
+      const l=structuredClone(S.live); l.events=l.events||[];
+      const kind=b.dataset.kind; l.events.push({side:b.dataset.side,kind,pts:PTS[kind],t:Date.now()});
+      if(navigator.vibrate)try{navigator.vibrate(25)}catch(e){}
+      safe(()=>store.saveLive(l));
+      if(matchOver(l)) window.scrollTo({top:0,behavior:"smooth"});
+      break }
+    case "undo": { const l=structuredClone(S.live); if(l.finished){l.finished=false} else if((l.events||[]).length){l.events.pop()} else return; safe(()=>store.saveLive(l)); toast("Undone"); break }
+    case "finish": { const t=totals(S.live); if(t.A===t.B){toast("Scores are level. Play on to break the tie.");return}
+      if(armed(b,"Tap again to finish")){ const l=structuredClone(S.live); l.finished=true; safe(()=>store.saveLive(l)); window.scrollTo({top:0,behavior:"smooth"}) } break }
     case "abandon": if(armed(b,"Tap again to abandon")){ safe(()=>store.saveLive(null)); toast("Match abandoned") } break;
     case "save": {
       const l=S.live, t=totals(l);
-      const m={id:uid(),type:l.type,teamA:l.teamA||null,teamB:l.teamB||null,sideA:l.sideA,sideB:l.sideB,target:l.target,boards:l.boards,fouls:l.fouls,scoreA:t.A,scoreB:t.B,winner:winnerOf(l),startedAt:l.startedAt,endedAt:Date.now()};
+      const m={id:uid(),type:l.type,teamA:l.teamA||null,teamB:l.teamB||null,sideA:l.sideA,sideB:l.sideB,target:l.target,events:l.events||[],boards:l.boards||[],scoreA:t.A,scoreB:t.B,winner:winnerOf(l),startedAt:l.startedAt,endedAt:Date.now()};
       safe(async()=>{await store.saveMatch(m);await store.saveLive(null);S.setup.A=[];S.setup.B=[];S.setup.tA=null;S.setup.tB=null;S.board=m.teamA?"teams":"players";S.tab="table";render();toast("Saved. Table updated.")}); break }
     case "delmatch": if(armed(b,"Tap to delete")) safe(()=>store.deleteMatch(b.dataset.id)); break;
     case "delplayer": if(armed(b,"Tap to remove")) safe(()=>store.deletePlayer(b.dataset.id)); break;
