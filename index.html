@@ -183,6 +183,12 @@ select,input[type=text],input[type=number]{font:inherit;color:var(--ink);backgro
 .x.armed{background:var(--queen);color:#fff}
 .empty{text-align:center;padding:28px 12px;color:var(--muted);display:flex;flex-direction:column;align-items:center;gap:10px}
 .rules{font-size:13px;color:var(--muted);margin:0;padding-left:18px;display:flex;flex-direction:column;gap:4px}
+.resetrow{display:flex;align-items:center;gap:12px;padding-block:10px;border-top:1px solid var(--line);font-size:14px}
+.resetrow>div{flex:1;min-width:0}
+.resetrow .muted{font-size:12px}
+.resetrow .btn{padding:8px 14px;flex:none}
+.danger{border-color:var(--queen-soft)}
+.prow .x{flex:none}
 .toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--ink);color:var(--panel);padding:10px 18px;border-radius:999px;font-weight:600;font-size:14px;z-index:20;max-width:calc(100% - 32px);text-align:center}
 @media (max-width:420px){.team .pts{font-size:60px}.sides{grid-template-columns:1fr}.lb th:nth-child(8),.lb td:nth-child(8){display:none}.lb th,.lb td{padding-inline:4px}}
 @media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
@@ -209,7 +215,7 @@ select,input[type=text],input[type=number]{font:inherit;color:var(--ink);backgro
 (function(){
 "use strict";
 /* ---------- state ---------- */
-const S = { players:[], teams:[], matches:[], live:null, tab:"live", ready:false, board:"players",
+const S = { players:[], teams:[], gone:{}, edit:null, matches:[], live:null, tab:"live", ready:false, board:"players",
   setup:{type:"singles", A:[], B:[], tA:null, tB:null, target:25},
   teamDraft:[],
   };
@@ -217,22 +223,30 @@ const LS_KEY="tent-hill-carrom-samaaj-v1";
 
 function uid(){return Math.random().toString(36).slice(2,10)+Date.now().toString(36).slice(-4)}
 function esc(s){return String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))}
-function pName(id){const p=S.players.find(x=>x.id===id);return p?p.name:"Removed player"}
+function pName(id){const p=S.players.find(x=>x.id===id);return p?p.name:(S.gone[id]||"Removed player")}
 function initials(n){return n.trim().split(/\s+/).map(w=>w[0]).join("").slice(0,2).toUpperCase()}
 function sideNames(ids){return ids.map(pName).join(" & ")}
-function tName(id){const t=S.teams.find(x=>x.id===id);return t?t.name:"Removed team"}
+function tName(id){const t=S.teams.find(x=>x.id===id);return t?t.name:(S.gone[id]||"Removed team")}
 function label(o,side){const t=o["team"+side];return t?tName(t):sideNames(o["side"+side])}
 function toast(msg){const t=document.getElementById("toast");t.textContent=msg;t.hidden=false;clearTimeout(toast._t);toast._t=setTimeout(()=>t.hidden=true,2200)}
 
 /* ---------- storage: this phone only (localStorage), nothing leaves the device ---------- */
-function loadLocal(){try{const d=JSON.parse(localStorage.getItem(LS_KEY)||"{}");S.players=d.players||[];S.teams=d.teams||[];S.matches=d.matches||[];S.live=d.live||null}catch(e){}}
-function saveLocal(){localStorage.setItem(LS_KEY,JSON.stringify({players:S.players,teams:S.teams,matches:S.matches,live:S.live}))}
+function loadLocal(){try{const d=JSON.parse(localStorage.getItem(LS_KEY)||"{}");S.players=d.players||[];S.teams=d.teams||[];S.gone=d.gone||{};S.matches=d.matches||[];S.live=d.live||null}catch(e){}}
+function saveLocal(){localStorage.setItem(LS_KEY,JSON.stringify({players:S.players,teams:S.teams,gone:S.gone,matches:S.matches,live:S.live}))}
 
 const store={
   async savePlayer(p){ S.players.push(p); saveLocal(); render() },
-  async deletePlayer(id){ S.players=S.players.filter(p=>p.id!==id); saveLocal(); render() },
+  async deletePlayer(id){ const p=S.players.find(x=>x.id===id); if(p)S.gone[id]=p.name; S.players=S.players.filter(p=>p.id!==id); saveLocal(); render() },
+  async updatePlayer(id,patch){ S.players=S.players.map(p=>p.id===id?{...p,...patch}:p); saveLocal(); render() },
+  async updateTeam(id,patch){ S.teams=S.teams.map(t=>t.id===id?{...t,...patch}:t); saveLocal(); render() },
+  async reset(what){
+    if(what==="matches"){ S.matches=[] }
+    if(what==="teams"){ for(const t of S.teams)S.gone[t.id]=t.name; S.teams=[] }
+    if(what==="all"){ S.players=[];S.teams=[];S.matches=[];S.live=null;S.gone={} }
+    S.edit=null; S.teamDraft=[]; S.setup.A=[];S.setup.B=[];S.setup.tA=null;S.setup.tB=null;
+    saveLocal(); render() },
   async saveTeam(t){ S.teams.push(t); saveLocal(); render() },
-  async deleteTeam(id){ S.teams=S.teams.filter(t=>t.id!==id); saveLocal(); render() },
+  async deleteTeam(id){ const t=S.teams.find(x=>x.id===id); if(t)S.gone[id]=t.name; S.teams=S.teams.filter(t=>t.id!==id); if(S.setup.tA===id)S.setup.tA=null; if(S.setup.tB===id)S.setup.tB=null; saveLocal(); render() },
   async saveMatch(m){ S.matches.push(m); saveLocal(); render() },
   async deleteMatch(id){ S.matches=S.matches.filter(m=>m.id!==id); saveLocal(); render() },
   async saveLive(l){ S.live=l; saveLocal(); render() }
@@ -241,7 +255,7 @@ async function safe(fn){try{await fn()}catch(e){toast("Couldn't save on this pho
 
 /* backup: a JSON file the referee keeps, to move scores to a new phone or recover after clearing data */
 function exportBackup(){
-  const data={app:"tent-hill-carrom-samaaj",version:1,exportedAt:new Date().toISOString(),players:S.players,teams:S.teams,matches:S.matches,live:S.live};
+  const data={app:"tent-hill-carrom-samaaj",version:1,exportedAt:new Date().toISOString(),players:S.players,teams:S.teams,gone:S.gone,matches:S.matches,live:S.live};
   const fname="tent-hill-carrom-backup-"+new Date().toISOString().slice(0,10)+".json";
   if(window.AndroidBridge&&window.AndroidBridge.saveBackup){
     const where=window.AndroidBridge.saveBackup(fname,JSON.stringify(data,null,2));
@@ -258,7 +272,7 @@ function importBackup(file){
   r.onload=()=>{try{
     const d=JSON.parse(r.result);
     if(d.app!=="tent-hill-carrom-samaaj"||!Array.isArray(d.players)||!Array.isArray(d.matches))throw 0;
-    S.players=d.players; S.teams=d.teams||[]; S.matches=d.matches; S.live=d.live||null; saveLocal(); render();
+    S.players=d.players; S.teams=d.teams||[]; S.gone=d.gone||{}; S.matches=d.matches; S.live=d.live||null; saveLocal(); render();
     toast("Restored "+d.players.length+" players and "+d.matches.length+" matches");
   }catch(e){toast("That file isn't a Tent Hill backup")}};
   r.readAsText(file);
@@ -451,33 +465,58 @@ function historyView(){
 }
 
 function playersView(){
-  const played=new Set(S.matches.flatMap(m=>[...m.sideA,...m.sideB]));
   const live=S.live?new Set([...S.live.sideA,...S.live.sideB]):new Set();
-  const inTeam=new Set(S.teams.flatMap(t=>t.members));
-  const teamPlayed=new Set(S.matches.flatMap(m=>[m.teamA,m.teamB]).filter(Boolean));
-  if(S.live&&S.live.teamA){teamPlayed.add(S.live.teamA);teamPlayed.add(S.live.teamB)}
-  const td=S.teamDraft;
+  const liveTeams=new Set(S.live?[S.live.teamA,S.live.teamB].filter(Boolean):[]);
+  const td=S.teamDraft, ed=S.edit;
+  const byName=a=>[...a].sort((x,y)=>x.name.localeCompare(y.name));
+  const teamsOf=id=>S.teams.filter(t=>t.members.includes(id)).map(t=>t.name);
+
+  const playerRow=p=>{
+    if(ed&&ed.kind==="player"&&ed.id===p.id) return `<form id="editplayer" class="prow" style="gap:8px">
+      <input type="text" id="editname" value="${esc(ed.name)}" maxlength="24" autocomplete="off" aria-label="Player name">
+      <button class="btn primary" type="submit" style="padding:8px 14px">Save</button><button class="x" type="button" data-act="cancel">Cancel</button></form>`;
+    const tn=teamsOf(p.id);
+    return `<div class="prow"><span class="coin W">${esc(initials(p.name))}</span><span class="nm">${esc(p.name)}${tn.length?`<br><span class="muted" style="font-weight:400;font-size:12px">${esc(tn.join(", "))}</span>`:""}</span>
+      <button class="x" data-act="editplayer" data-id="${p.id}">Edit</button><button class="x" data-act="delplayer" data-id="${p.id}">Delete</button></div>`;
+  };
+  const teamRow=t=>{
+    if(ed&&ed.kind==="team"&&ed.id===t.id) return `<form id="editteam" class="stack" style="gap:10px;padding-block:12px;border-bottom:1px solid var(--line)">
+      <input type="text" id="editteamname" value="${esc(ed.name)}" maxlength="28" autocomplete="off" aria-label="Team name">
+      <div><div class="label" style="margin-bottom:6px">Players <span class="num">${ed.members.length}/2</span></div>
+      <div class="pick">${byName(S.players).map(p=>`<button type="button" class="chip" data-act="edpick" data-id="${p.id}" aria-pressed="${ed.members.includes(p.id)}" ${ed.members.length>=2&&!ed.members.includes(p.id)?"disabled":""}>${esc(p.name)}</button>`).join("")}</div></div>
+      <div class="row"><button class="btn primary" type="submit" ${ed.members.length===2?"":"disabled"}>Save team</button><button class="btn ghost" type="button" data-act="cancel">Cancel</button></div></form>`;
+    return `<div class="prow"><span class="coin B">${esc(initials(t.name))}</span><span class="nm">${esc(t.name)}<br><span class="muted" style="font-weight:400;font-size:13px">${esc(sideNames(t.members))}</span></span>
+      <button class="x" data-act="editteam" data-id="${t.id}">Edit</button><button class="x" data-act="delteam" data-id="${t.id}">Delete</button></div>`;
+  };
+
   const teamCard=`<section class="card stack"><div><div class="label">Squad</div><h2>Teams</h2></div>
     ${S.players.length<2?`<p class="muted" style="margin:0">Add at least 2 players to make a team.</p>`:`
     <form id="teamform" class="stack" style="gap:10px">
       <input type="text" id="teamname" placeholder="Team name, e.g. Tent Hill Tigers" maxlength="28" autocomplete="off" aria-label="Team name">
       <div><div class="label" style="margin-bottom:6px">Pick 2 players <span class="num">${td.length}/2</span></div>
-      <div class="pick">${[...S.players].sort((a,b)=>a.name.localeCompare(b.name)).map(p=>`<button type="button" class="chip" data-act="tdpick" data-id="${p.id}" aria-pressed="${td.includes(p.id)}" ${td.length>=2&&!td.includes(p.id)?"disabled":""}>${esc(p.name)}</button>`).join("")}</div></div>
+      <div class="pick">${byName(S.players).map(p=>`<button type="button" class="chip" data-act="tdpick" data-id="${p.id}" aria-pressed="${td.includes(p.id)}" ${td.length>=2&&!td.includes(p.id)?"disabled":""}>${esc(p.name)}</button>`).join("")}</div></div>
       <button class="btn primary" type="submit" ${td.length===2?"":"disabled"}>Create team</button>
     </form>`}
-    ${S.teams.length?`<div class="plist">${[...S.teams].sort((a,b)=>a.name.localeCompare(b.name)).map(t=>`<div class="prow"><span class="coin B">${esc(initials(t.name))}</span><span class="nm">${esc(t.name)}<br><span class="muted" style="font-weight:400;font-size:13px">${esc(sideNames(t.members))}</span></span>${teamPlayed.has(t.id)?`<span class="muted" style="font-size:12px">has results</span>`:`<button class="x" data-act="delteam" data-id="${t.id}">Remove</button>`}</div>`).join("")}</div>`:""}
+    ${S.teams.length?`<div class="plist">${byName(S.teams).map(teamRow).join("")}</div>`:""}
   </section>`;
+
   return `<section class="card stack"><div><div class="label">Squad</div><h2>Players</h2></div>
     <form id="addform" class="row" style="flex-wrap:nowrap"><input type="text" id="newname" placeholder="Friend's name" maxlength="24" autocomplete="off" aria-label="Player name"><button class="btn primary" type="submit">Add</button></form>
-    ${S.players.length?`<div class="plist">${[...S.players].sort((a,b)=>a.name.localeCompare(b.name)).map(p=>`<div class="prow"><span class="coin W">${esc(initials(p.name))}</span><span class="nm">${esc(p.name)}</span>${played.has(p.id)||live.has(p.id)||inTeam.has(p.id)?`<span class="muted" style="font-size:12px">${played.has(p.id)?"has results":live.has(p.id)?"in a match":"in a team"}</span>`:`<button class="x" data-act="delplayer" data-id="${p.id}">Remove</button>`}</div>`).join("")}</div>`
+    ${S.players.length?`<div class="plist">${byName(S.players).map(playerRow).join("")}</div>`
     :`<p class="muted" style="margin:0">No players yet. Add everyone who plays, then pick sides on the Match tab.</p>`}
   </section>
   ${teamCard}
   <section class="card stack"><div><div class="label">Your data</div><h2>Backup</h2></div>
-    <p class="muted" style="margin:0">Scores are saved only on this phone. Save a backup now and then, so you can restore it if you clear the browser or change phones.</p>
+    <p class="muted" style="margin:0">Scores are saved only on this phone. Save a backup now and then, so you can restore it if you clear the app data or change phones.</p>
     <div class="backup"><button class="btn primary" data-act="export">Save backup</button>
       <label class="btn ghost filebtn" for="restore">Restore backup<input type="file" id="restore" accept="application/json,.json"></label></div>
     <p class="muted" style="margin:0;font-size:12px">${S.players.length} players · ${S.teams.length} teams · ${S.matches.length} matches stored</p>
+  </section>
+  <section class="card stack danger"><div><div class="label">Start fresh</div><h2>Reset</h2></div>
+    <p class="muted" style="margin:0">Tap a button twice to confirm. This can't be undone, so save a backup first if you might want the data back.</p>
+    <div class="resetrow"><div><b>Reset leaderboard</b><br><span class="muted">Deletes all saved matches. Players and teams stay.</span></div><button class="btn ghost" data-act="reset" data-v="matches" ${S.matches.length?"":"disabled"}>Reset</button></div>
+    <div class="resetrow"><div><b>Delete all teams</b><br><span class="muted">Players and match history stay.</span></div><button class="btn ghost" data-act="reset" data-v="teams" ${S.teams.length?"":"disabled"}>Delete</button></div>
+    <div class="resetrow"><div><b>Reset everything</b><br><span class="muted">Players, teams, matches and any match in progress.</span></div><button class="btn red" data-act="reset" data-v="all" ${S.players.length||S.teams.length||S.matches.length||S.live?"":"disabled"}>Reset all</button></div>
   </section>`;
 }
 
@@ -495,6 +534,18 @@ document.getElementById("app").addEventListener("change",e=>{
   if(e.target.id==="restore"&&e.target.files[0]){importBackup(e.target.files[0])}
 });
 document.getElementById("app").addEventListener("submit",e=>{
+  if(e.target.id==="editplayer"){ e.preventDefault();
+    const name=document.getElementById("editname").value.trim().replace(/\s+/g," ");
+    if(!name){toast("Type a name");return}
+    if(S.players.some(p=>p.id!==S.edit.id&&p.name.toLowerCase()===name.toLowerCase())){toast(name+" is already on the list");return}
+    const id=S.edit.id; S.edit=null; safe(()=>store.updatePlayer(id,{name})).then(()=>toast("Saved")); return; }
+  if(e.target.id==="editteam"){ e.preventDefault();
+    const name=document.getElementById("editteamname").value.trim().replace(/\s+/g," ");
+    if(!name){toast("Give the team a name");return}
+    if(S.teams.some(t=>t.id!==S.edit.id&&t.name.toLowerCase()===name.toLowerCase())){toast(name+" already exists");return}
+    if(S.edit.members.length!==2){toast("Pick 2 players");return}
+    const id=S.edit.id, members=[...S.edit.members]; S.edit=null;
+    safe(()=>store.updateTeam(id,{name,members})).then(()=>toast("Team saved")); return; }
   if(e.target.id==="teamform"){ e.preventDefault();
     const name=document.getElementById("teamname").value.trim().replace(/\s+/g," ");
     if(!name){toast("Give the team a name");return}
@@ -518,7 +569,18 @@ document.getElementById("app").addEventListener("click",e=>{
     case "type": st.type=b.dataset.v; st.A=[]; st.B=[]; st.tA=null; st.tB=null; render(); break;
     case "pickteam": { const k="t"+b.dataset.side; st[k]=st[k]===b.dataset.id?null:b.dataset.id; render(); break }
     case "tdpick": { const keep=(document.getElementById("teamname")||{}).value||""; const i=S.teamDraft.indexOf(b.dataset.id); i>=0?S.teamDraft.splice(i,1):S.teamDraft.push(b.dataset.id); render(); const n=document.getElementById("teamname"); if(n)n.value=keep; break }
-    case "delteam": if(armed(b,"Tap to remove")) safe(()=>store.deleteTeam(b.dataset.id)); break;
+    case "delteam": { const id=b.dataset.id;
+      if(S.live&&(S.live.teamA===id||S.live.teamB===id)){toast("This team is playing now. Finish or abandon the match first.");return}
+      if(armed(b,"Tap again")) safe(()=>store.deleteTeam(id)).then(()=>toast("Team deleted")); break }
+    case "editteam": { const id=b.dataset.id, t=S.teams.find(x=>x.id===id);
+      if(S.live&&(S.live.teamA===id||S.live.teamB===id)){toast("This team is playing now. Finish the match first.");return}
+      S.edit={kind:"team",id,name:t.name,members:[...t.members]}; render(); break }
+    case "editplayer": { const p=S.players.find(x=>x.id===b.dataset.id); S.edit={kind:"player",id:p.id,name:p.name}; render(); const i=document.getElementById("editname"); if(i){i.focus();i.select()} break }
+    case "edpick": { const keep=(document.getElementById("editteamname")||{}).value; const m=S.edit.members, i=m.indexOf(b.dataset.id); i>=0?m.splice(i,1):m.push(b.dataset.id); S.edit.name=keep??S.edit.name; render(); break }
+    case "cancel": S.edit=null; render(); break;
+    case "reset": { const v=b.dataset.v;
+      if((v==="teams")&&S.live&&S.live.teamA){toast("A team match is in progress. Finish or abandon it first.");return}
+      if(armed(b,"Sure?")) safe(()=>store.reset(v)).then(()=>toast(v==="matches"?"Leaderboard reset":v==="teams"?"All teams deleted":"Everything reset")); break }
     case "lb": S.board=b.dataset.v; render(); break;
     case "pick": { const arr=st[b.dataset.side], id=b.dataset.id, i=arr.indexOf(id); i>=0?arr.splice(i,1):arr.push(id); render(); break }
     case "start": {
@@ -542,7 +604,11 @@ document.getElementById("app").addEventListener("click",e=>{
       const m={id:uid(),type:l.type,teamA:l.teamA||null,teamB:l.teamB||null,sideA:l.sideA,sideB:l.sideB,target:l.target,events:l.events||[],boards:l.boards||[],scoreA:t.A,scoreB:t.B,winner:winnerOf(l),startedAt:l.startedAt,endedAt:Date.now()};
       safe(async()=>{await store.saveMatch(m);await store.saveLive(null);S.setup.A=[];S.setup.B=[];S.setup.tA=null;S.setup.tB=null;S.board=m.teamA?"teams":"players";S.tab="table";render();toast("Saved. Table updated.")}); break }
     case "delmatch": if(armed(b,"Tap to delete")) safe(()=>store.deleteMatch(b.dataset.id)); break;
-    case "delplayer": if(armed(b,"Tap to remove")) safe(()=>store.deletePlayer(b.dataset.id)); break;
+    case "delplayer": { const id=b.dataset.id;
+      if(S.live&&[...S.live.sideA,...S.live.sideB].includes(id)){toast("This player is in the match now. Finish or abandon it first.");return}
+      const tn=S.teams.filter(t=>t.members.includes(id)).map(t=>t.name);
+      if(tn.length){toast("In team "+tn.join(", ")+". Edit or delete that team first.");return}
+      if(armed(b,"Tap again")){ S.setup.A=S.setup.A.filter(x=>x!==id); S.setup.B=S.setup.B.filter(x=>x!==id); safe(()=>store.deletePlayer(id)).then(()=>toast("Player deleted")) } break }
     case "export": exportBackup(); break;
   }
 });

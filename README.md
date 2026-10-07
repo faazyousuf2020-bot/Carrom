@@ -24,6 +24,11 @@ Every push to `main` builds the app automatically. Open the repo's **Releases**,
 - **Undo last tap** fixes a mis-tap.
 - Leaderboard: 2 points per match win, ties broken by point difference. Separate Players and Teams tables.
 
+## Edit, delete, reset
+
+- **Squad** tab: **Edit** renames a player, or renames a team and changes its players. **Delete** removes one (tap twice). Old match history keeps their names.
+- **Squad → Reset**: reset the leaderboard (deletes saved matches), delete all teams, or reset everything. Tap twice to confirm.
+
 ## Backup
 
 Scores live in the phone browser's storage. Use **Squad → Save backup** now and then. **Restore backup** loads that file on any phone.
