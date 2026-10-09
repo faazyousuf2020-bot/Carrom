@@ -30,7 +30,8 @@ Tap **Play** in the app to open the carrom game:
 
 - **Singles or Doubles** (you + computer partner vs two computers, all four sides of the board), Easy / Medium / Hard / Pro, one board or 25 / 29 points (8-board cap).
 - **Realistic physics**: real masses and sizes (ICF), sliding friction on powder, spin and contact friction, speed-dependent cushion bounce, coins that tip into pockets or rattle out of the jaws, no tunnelling at any speed. Plays in real time.
-- **Full rules**: queen cover, striker foul, due coins, fouls for pocketing the opponent's last coin or your last coin before the queen is covered.
+- **Official ICF rules** (International Carrom Federation laws): break must touch a coin (3 attempts), breaker plays white and the break alternates, queen cover and the 21-point queen limit, due coins, striker-with-own-coin keeps the turn (law 73), fouls for the opponent's last coin and for your last coin before the queen, no direct hits on coins behind your baseline, 25 points or 8 boards, optional 15-second shot clock.
+- **Game modes**: Carrom (ICF), Freestyle (white 20, black 10, queen 50, first to 120) and Disc pool (no queen), as in the popular apps. **Watch the computers play** to learn.
 - **Precise aim** (lock, nudge, shoot), **slow-motion replay**, synthesized sounds and vibration.
 - **Coach**: shows the best shot (straight, cut, thin cut or rebound), where to place the striker and how much power, and explains why. After each of your shots it tells you what went wrong.
 - **Lessons**: straight shot, cut shot, soft touch, rebound, rail shot, taking and covering the queen, and the break. Earn up to 3 stars.

@@ -1,6 +1,6 @@
 // Offline support: the app works with no internet once opened once.
 // Scores are never sent anywhere; they live in the phone's local storage.
-const CACHE = "tent-hill-carrom-v3";
+const CACHE = "tent-hill-carrom-v4";
 const CORE = ["./", "./index.html", "./game.html", "./manifest.webmanifest", "./icons/icon-192.png", "./icons/icon-512.png"];
 
 self.addEventListener("install", e => {
