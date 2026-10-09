@@ -28,7 +28,10 @@ Every push to `main` builds the app automatically. Open the repo's **Releases**,
 
 Tap **Play** in the app to open the carrom game:
 
-- **You vs CPU**: Easy, Medium or Hard; one board or first to 25. Real rules: queen must be covered, striker in a pocket is a foul, shots go forward only.
+- **Singles or Doubles** (you + computer partner vs two computers, all four sides of the board), Easy / Medium / Hard / Pro, one board or 25 / 29 points (8-board cap).
+- **Realistic physics**: real masses and sizes (ICF), sliding friction on powder, spin and contact friction, speed-dependent cushion bounce, coins that tip into pockets or rattle out of the jaws, no tunnelling at any speed. Plays in real time.
+- **Full rules**: queen cover, striker foul, due coins, fouls for pocketing the opponent's last coin or your last coin before the queen is covered.
+- **Precise aim** (lock, nudge, shoot), **slow-motion replay**, synthesized sounds and vibration.
 - **Coach**: shows the best shot (straight, cut, thin cut or rebound), where to place the striker and how much power, and explains why. After each of your shots it tells you what went wrong.
 - **Lessons**: straight shot, cut shot, soft touch, rebound, rail shot, taking and covering the queen, and the break. Earn up to 3 stars.
 - **Real-board tips**: grip, flick, powder and strategy.

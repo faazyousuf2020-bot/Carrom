@@ -3,6 +3,7 @@
 
     <!-- Only used to load the Google fonts; all scores stay on the phone. -->
     <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.VIBRATE" />
 
     <application
         android:label="@string/app_name"
