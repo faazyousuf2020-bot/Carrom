@@ -17,7 +17,7 @@ jobs:
       - name: Copy the app into the Android project
         run: |
           mkdir -p android/app/src/main/assets/www/icons
-          cp index.html manifest.webmanifest sw.js android/app/src/main/assets/www/
+          cp *.html manifest.webmanifest sw.js android/app/src/main/assets/www/
           cp icons/*.png android/app/src/main/assets/www/icons/
 
       - uses: actions/setup-java@v5

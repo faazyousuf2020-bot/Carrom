@@ -1,0 +1,919 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
+<title>Tent Hill Carrom · Play</title>
+<meta name="theme-color" content="#4A2A1E">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icons/icon-192.png" type="image/png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@600;800;900&family=Figtree:wght@400;500;600;700&display=swap">
+<style>
+/* Layout: the same birch-and-rosewood identity as the referee app; the board is the hero, controls sit under the thumb */
+:root{
+  --birch:#F1E7D3; --panel:#FBF6EC; --frame:#4A2A1E; --frame-ink:#F6EBDD;
+  --ink:#2B1D16; --muted:#7C6A5C; --line:#DCCDB4;
+  --queen:#C2272D; --queen-soft:#F6D9D6; --good:#2F7A45; --good-soft:#DCEFDF; --warn:#B8741A;
+  --display:"Big Shoulders Display", "Arial Narrow", Impact, sans-serif;
+  --body:"Figtree", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --r:14px;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --birch:#1C1512; --panel:#271D18; --frame:#120C0A; --frame-ink:#EADBC8;
+  --ink:#F1E6D8; --muted:#A8968A; --line:#3E3029;
+  --queen:#E5484D; --queen-soft:#3D1D1E; --good:#5CB878; --good-soft:#1D3323; --warn:#E0A045; color-scheme:dark;
+}}
+:root[data-theme="dark"]{
+  --birch:#1C1512; --panel:#271D18; --frame:#120C0A; --frame-ink:#EADBC8;
+  --ink:#F1E6D8; --muted:#A8968A; --line:#3E3029;
+  --queen:#E5484D; --queen-soft:#3D1D1E; --good:#5CB878; --good-soft:#1D3323; --warn:#E0A045; color-scheme:dark;
+}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html{padding-bottom:env(safe-area-inset-bottom,0px)}
+body{margin:0;min-height:100vh;background:var(--birch);color:var(--ink);font-family:var(--body);font-size:15px;line-height:1.45;-webkit-tap-highlight-color:transparent;overscroll-behavior:none}
+button{font:inherit;color:inherit;cursor:pointer}
+button:focus-visible,input:focus-visible,a:focus-visible{outline:3px solid var(--queen);outline-offset:2px}
+.num{font-variant-numeric:tabular-nums}
+
+header.bar{position:sticky;top:0;z-index:5;background:var(--frame);color:var(--frame-ink);padding:calc(10px + env(safe-area-inset-top,0px)) 16px 10px}
+.brand{display:flex;align-items:center;gap:10px;max-width:720px;margin:0 auto}
+.brand h1{font-family:var(--display);font-weight:900;font-size:24px;letter-spacing:.02em;margin:0;text-transform:uppercase;line-height:1}
+.brand small{display:block;font-size:11px;letter-spacing:.14em;text-transform:uppercase;opacity:.7}
+.back{color:var(--frame-ink);text-decoration:none;font-weight:700;font-size:13px;border:1.5px solid rgba(255,255,255,.25);border-radius:999px;padding:6px 12px;margin-left:auto;white-space:nowrap;background:none}
+main{max-width:720px;margin:0 auto;padding-block:16px 40px;padding-inline:16px;display:flex;flex-direction:column;gap:16px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:16px}
+.label{font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);font-weight:700}
+h2{font-family:var(--display);font-weight:800;font-size:24px;text-transform:uppercase;letter-spacing:.02em;margin:0;text-wrap:balance}
+h3{font-size:16px;margin:0}
+.muted{color:var(--muted)}
+.row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.stack{display:flex;flex-direction:column;gap:12px}
+.btn{border:1.5px solid var(--ink);background:transparent;border-radius:999px;padding:10px 18px;font-weight:700}
+.btn.primary{background:var(--ink);color:var(--panel)}
+.btn.red{background:var(--queen);border-color:var(--queen);color:#fff}
+.btn.ghost{border-color:var(--line)}
+.btn.block{width:100%;padding:14px;font-size:16px}
+.btn.sm{padding:7px 12px;font-size:13px}
+.btn:disabled{opacity:.4;cursor:not-allowed}
+.btn.on{background:var(--good-soft);border-color:var(--good);color:var(--good)}
+.seg{display:flex;border:1.5px solid var(--line);border-radius:999px;padding:3px;gap:3px}
+.seg button{flex:1;border:0;background:none;border-radius:999px;padding:8px 10px;font-weight:600;color:var(--muted)}
+.seg button[aria-pressed="true"]{background:var(--ink);color:var(--panel)}
+
+/* menu */
+.hero{background:var(--frame);color:var(--frame-ink);border-radius:18px;padding:20px;display:flex;flex-direction:column;gap:12px;position:relative;overflow:hidden}
+.hero h2{font-size:34px;line-height:.95}
+.hero p{margin:0;opacity:.85;max-width:44ch}
+.hero>*{position:relative;z-index:1}
+.hero canvas{position:absolute;z-index:0;right:-40px;bottom:-40px;width:170px;height:170px;opacity:.28;pointer-events:none;transform:rotate(12deg)}
+.modes{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.mode{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:14px;text-align:left;display:flex;flex-direction:column;gap:6px;min-width:0}
+.mode b{font-family:var(--display);font-size:20px;text-transform:uppercase;letter-spacing:.02em}
+.mode span{font-size:13px;color:var(--muted)}
+.mode.wide{grid-column:1/-1}
+.statrow{display:flex;gap:16px;flex-wrap:wrap;font-size:13px;color:var(--muted)}
+.statrow b{color:var(--ink)}
+
+/* game */
+#game{max-width:560px;padding-top:10px;gap:10px}
+.scorebar{display:grid;grid-template-columns:1fr auto 1fr;gap:8px;align-items:center;background:var(--frame);color:var(--frame-ink);border-radius:14px;padding:8px 12px}
+.side{display:flex;align-items:center;gap:8px;min-width:0}
+.side.r{justify-content:flex-end;text-align:right}
+.side .nm{font-weight:700;font-size:13px;line-height:1.15}
+.side .ct{font-family:var(--display);font-weight:900;font-size:26px;line-height:1}
+.side.active .nm::after{content:" ●";color:#FFD9A8}
+.dot{width:20px;height:20px;border-radius:50%;flex:none;box-shadow:inset 0 0 0 2px rgba(0,0,0,.25)}
+.dot.W{background:#F4EBD9}.dot.B{background:#2A211C;box-shadow:inset 0 0 0 2px rgba(255,255,255,.25)}.dot.Q{background:#C2272D}
+.mid{text-align:center;font-size:11px;letter-spacing:.1em;text-transform:uppercase;opacity:.8;line-height:1.2}
+.mid b{display:block;font-family:var(--display);font-size:18px;letter-spacing:0;opacity:1}
+.boardwrap{position:relative;width:100%;display:flex;justify-content:center}
+canvas#board{display:block;touch-action:none;border-radius:10px;box-shadow:0 6px 20px rgba(40,20,10,.25);max-width:100%}
+.say{min-height:44px;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:10px 12px;font-size:14px;display:flex;gap:10px;align-items:flex-start}
+.say .who{font-weight:800;font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--queen);flex:none;padding-top:2px}
+.say.good .who{color:var(--good)}
+.slidewrap{display:flex;align-items:center;gap:10px}
+.slidewrap span{font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);font-weight:700;flex:none}
+input[type=range]{flex:1;accent-color:var(--queen);height:32px;min-width:0}
+.tools{display:flex;gap:8px;flex-wrap:wrap}
+.tools .btn{flex:1;min-width:0;padding:10px 8px;font-size:14px}
+.coach{background:var(--panel);border:1.5px solid var(--good);border-radius:12px;padding:12px;display:flex;flex-direction:column;gap:8px}
+.coach h3{color:var(--good);font-family:var(--display);text-transform:uppercase;font-size:20px;letter-spacing:.02em}
+.coach p{margin:0;font-size:14px}
+.overlay{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(20,10,5,.55);border-radius:10px;padding:16px}
+.overlay .card{max-width:320px;width:100%;text-align:center;display:flex;flex-direction:column;gap:10px;align-items:stretch}
+.overlay .big{font-family:var(--display);font-weight:900;font-size:36px;text-transform:uppercase;line-height:1}
+.stars{font-size:28px;letter-spacing:4px;color:var(--warn)}
+
+/* lessons & tips */
+.lesson{display:flex;gap:12px;align-items:center;padding-block:12px;border-bottom:1px solid var(--line);width:100%;background:none;border-left:0;border-right:0;border-top:0;text-align:left}
+.lesson:last-child{border-bottom:0}
+.lesson .n{font-family:var(--display);font-weight:900;font-size:26px;width:28px;flex:none;color:var(--queen)}
+.lesson .t{flex:1;min-width:0}
+.lesson .t b{display:block}
+.lesson .t span{font-size:13px;color:var(--muted)}
+.lesson .s{color:var(--warn);font-size:15px;letter-spacing:2px;flex:none}
+.tip{padding-block:12px;border-bottom:1px solid var(--line)}
+.tip:last-child{border-bottom:0}
+.tip p{margin:4px 0 0;font-size:14px;max-width:62ch}
+.toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--ink);color:var(--panel);padding:10px 18px;border-radius:999px;font-weight:600;font-size:14px;z-index:20;max-width:calc(100% - 32px);text-align:center}
+@media (max-width:380px){.modes{grid-template-columns:1fr}}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+</style>
+</head>
+<body>
+<header class="bar">
+  <div class="brand">
+    <span class="dot Q" style="width:30px;height:30px" aria-hidden="true"></span>
+    <div><h1>Tent Hill</h1><small id="subtitle">Carrom practice</small></div>
+    <button class="back" id="backbtn" type="button">Scorecard</button>
+  </div>
+</header>
+
+<!-- MENU -->
+<main id="menu">
+  <section class="hero">
+    <div class="label" style="color:inherit;opacity:.7">Practice board</div>
+    <h2>Play carrom<br>on your phone</h2>
+    <p>Play the computer, learn the shots that win boards, and ask the coach what to play when you're stuck.</p>
+    <canvas id="herocv" width="300" height="300" aria-hidden="true"></canvas>
+  </section>
+
+  <section class="card stack">
+    <div><div class="label">Play the computer</div><h2>You vs CPU</h2></div>
+    <div><div class="label" style="margin-bottom:6px">Level</div>
+      <div class="seg" role="group" aria-label="Level">
+        <button data-diff="easy" aria-pressed="true">Easy</button>
+        <button data-diff="medium" aria-pressed="false">Medium</button>
+        <button data-diff="hard" aria-pressed="false">Hard</button>
+      </div></div>
+    <div><div class="label" style="margin-bottom:6px">Length</div>
+      <div class="seg" role="group" aria-label="Game length">
+        <button data-len="0" aria-pressed="true">One board</button>
+        <button data-len="25" aria-pressed="false">First to 25</button>
+      </div></div>
+    <button class="btn red block" id="startcpu">Start game</button>
+    <div class="statrow" id="stats"></div>
+  </section>
+
+  <section class="modes">
+    <button class="mode" id="golessons"><b>Lessons</b><span>7 shots and tricks, from the straight shot to covering the queen.</span></button>
+    <button class="mode" id="gopractice"><b>Free practice</b><span>Every shot is yours. Clear the board with the coach beside you.</span></button>
+    <button class="mode wide" id="gotips"><b>Real-board tips</b><span>Grip, flick, powder and strategy for when you play with friends.</span></button>
+  </section>
+
+  <section class="card">
+    <div class="label" style="margin-bottom:8px">How to play</div>
+    <ul style="margin:0;padding-left:18px;font-size:14px;display:flex;flex-direction:column;gap:4px" class="muted">
+      <li>Slide the striker along your baseline with the slider, or drag the striker itself.</li>
+      <li>Touch anywhere on the board and pull back like a catapult. The arrow shows direction and power. Let go to shoot.</li>
+      <li>You play white from the bottom. Pocket your coin and you shoot again.</li>
+      <li>Queen: pocket it only after one of your coins, then cover it by pocketing your coin in the next shot.</li>
+      <li>Shots must go forward. To reach coins behind your baseline, bounce off a cushion.</li>
+      <li>Striker in a pocket is a foul. You lose the turn and one of your coins goes back to the centre.</li>
+    </ul>
+  </section>
+</main>
+
+<!-- LESSONS -->
+<main id="lessons" hidden>
+  <section class="card stack"><div><div class="label">Learn</div><h2>Lessons</h2></div>
+    <p class="muted" style="margin:0">Each lesson sets up a shot. Read the tip, use the coach if you need it, and pocket the target. Fewer tries earn more stars.</p>
+    <div id="lessonlist"></div>
+  </section>
+</main>
+
+<!-- TIPS -->
+<main id="tips" hidden></main>
+
+<!-- GAME -->
+<main id="game" hidden>
+  <div class="scorebar">
+    <div class="side" id="sideP"><span class="dot W"></span><div><div class="nm" id="nameP">You</div><div class="ct num" id="ctP">0</div></div></div>
+    <div class="mid" id="midinfo">Board<b class="num">1</b></div>
+    <div class="side r" id="sideC"><div><div class="nm" id="nameC">Computer</div><div class="ct num" id="ctC">0</div></div><span class="dot B"></span></div>
+  </div>
+  <div class="boardwrap" id="boardwrap">
+    <canvas id="board" aria-label="Carrom board"></canvas>
+    <div class="overlay" id="overlay" hidden></div>
+  </div>
+  <div class="slidewrap"><span>Striker</span><input type="range" id="sx" min="15.09" max="58.91" step="0.01" value="37" aria-label="Striker position"></div>
+  <div class="say" id="say"><span class="who" id="saywho">Ref</span><span id="saytxt">Your break. Pull back on the board to shoot.</span></div>
+  <div class="coach" id="coachbox" hidden></div>
+  <div class="tools">
+    <button class="btn ghost" id="hintbtn" type="button">Coach</button>
+    <button class="btn ghost" id="guidebtn" type="button">Aim guide</button>
+    <button class="btn ghost" id="resetbtn" type="button" hidden>Re-rack</button>
+    <button class="btn ghost" id="menubtn" type="button">Menu</button>
+  </div>
+</main>
+
+<div class="toast" id="toast" hidden></div>
+
+<script>
+(function(){
+"use strict";
+/* ================= Board geometry (centimetres, ICF proportions) ================= */
+const B=74;                 // playing surface 74 cm square
+const FRAME=5.2;            // drawn frame width
+const PR=2.225;             // pocket radius (4.45 cm hole)
+const PC=2.3;               // pocket centre offset from corner
+const POCK=[[PC,PC],[B-PC,PC],[PC,B-PC],[B-PC,B-PC]];
+const PNAME=["top-left","top-right","bottom-left","bottom-right"];
+const CR=1.59, SR=2.065;    // coin 3.18 cm, striker 4.13 cm
+const CM=5.5, SM=15;        // grams
+const BY_P=B-10.15-1.59, BY_C=10.15+1.59;   // striker line, player (bottom) and CPU (top)
+const XMIN=15.09, XMAX=58.91;
+/* physics */
+const DT=1/400, FR=70, DAMP=0.42, EW=0.7, EC=0.9, STOP=0.7;
+const MINV=40, MAXV=430;
+const KNAME={W:"white coin",B:"black coin",Q:"queen"};
+
+/* ================= State ================= */
+const G={mode:"menu",diff:"easy",len:0,bodies:[],turn:"P",phase:"aim",sx:37,queen:"board",
+  score:{P:0,C:0},boardNo:1,breaker:"P",guide:true,hint:null,lesson:null,tries:0,
+  aim:null,ev:null,cpu:null,drag:null,shots:0,pocketedThisTurn:0,lastFeedback:""};
+const LS="tenthill-carrom-game-v1";
+let stats={win:{easy:0,medium:0,hard:0},loss:{easy:0,medium:0,hard:0},lessons:{}};
+try{const s=JSON.parse(localStorage.getItem(LS)||"null");if(s)stats=Object.assign(stats,s)}catch(e){}
+function saveStats(){try{localStorage.setItem(LS,JSON.stringify(stats))}catch(e){}}
+
+/* ================= Helpers ================= */
+const $=id=>document.getElementById(id);
+const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+const hyp=Math.hypot;
+function toast(m){const t=$("toast");t.textContent=m;t.hidden=false;clearTimeout(toast._t);toast._t=setTimeout(()=>t.hidden=true,2200)}
+function say(text,who,good){$("saytxt").textContent=text;$("saywho").textContent=who||"Ref";$("say").classList.toggle("good",!!good)}
+function body(kind,x,y){return{kind,x,y,vx:0,vy:0,r:kind==="S"?SR:CR,m:kind==="S"?SM:CM,on:true,id:Math.random().toString(36).slice(2,8)}}
+function clone(bs){return bs.map(b=>({...b}))}
+function moving(b){return b.on&&(b.vx!==0||b.vy!==0)}
+function onBoard(kind){return G.bodies.filter(b=>b.on&&b.kind===kind).length}
+
+/* Standard rack: queen in the centre, ring of six, ring of twelve */
+function rack(){
+  const bs=[body("Q",37,37)]; const d=2*CR+0.03;
+  const inner=[],outer=[];
+  for(let k=0;k<6;k++){const a=(90+k*60)*Math.PI/180; inner.push([37+Math.cos(a)*d,37+Math.sin(a)*d, k%2?"B":"W"])}
+  for(let k=0;k<6;k++){const a=(90+k*60)*Math.PI/180; outer.push([37+Math.cos(a)*2*d,37+Math.sin(a)*2*d, k%2?"B":"W"])}
+  for(let k=0;k<6;k++){const a=(120+k*60)*Math.PI/180; outer.push([37+Math.cos(a)*Math.sqrt(3)*d,37+Math.sin(a)*Math.sqrt(3)*d, k%2?"W":"B"])}
+  for(const [x,y,c] of inner.concat(outer)) bs.push(body(c,x,y));
+  return bs;
+}
+/* put a coin back near the centre on the nearest free spot */
+function respot(b){
+  for(let r=0;r<20;r+=0.6){
+    const n=r===0?1:Math.max(6,Math.floor(2*Math.PI*r/1.2));
+    for(let i=0;i<n;i++){
+      const a=i/n*Math.PI*2, x=37+Math.cos(a)*r, y=37+Math.sin(a)*r;
+      if(G.bodies.every(o=>!o.on||o===b||hyp(o.x-x,o.y-y)>o.r+b.r+0.05)){b.x=x;b.y=y;b.vx=b.vy=0;b.on=true;return}
+    }
+  }
+}
+function strikerFree(x,y,bs){return (bs||G.bodies).every(o=>!o.on||o.kind==="S"||hyp(o.x-x,o.y-y)>o.r+SR+0.02)}
+
+/* ================= Physics ================= */
+function step(bs,ev){
+  for(const b of bs){
+    if(!b.on||(b.vx===0&&b.vy===0))continue;
+    const sp=hyp(b.vx,b.vy), ns=sp-(FR+DAMP*sp)*DT;
+    if(ns<=STOP){b.vx=0;b.vy=0;continue}
+    const k=ns/sp; b.vx*=k; b.vy*=k; b.x+=b.vx*DT; b.y+=b.vy*DT;
+    let gone=false;
+    for(let p=0;p<4;p++){const P=POCK[p]; if((b.x-P[0])**2+(b.y-P[1])**2<PR*PR){b.on=false;b.vx=b.vy=0;ev.pocketed.push({kind:b.kind,pocket:p,b});gone=true;break}}
+    if(gone)continue;
+    let hit=false;
+    if(b.x<b.r){b.x=b.r;b.vx=-b.vx*EW;hit=true}
+    else if(b.x>B-b.r){b.x=B-b.r;b.vx=-b.vx*EW;hit=true}
+    if(b.y<b.r){b.y=b.r;b.vy=-b.vy*EW;hit=true}
+    else if(b.y>B-b.r){b.y=B-b.r;b.vy=-b.vy*EW;hit=true}
+    if(hit&&b.kind==="S"&&!ev.first)ev.cushionFirst=true;
+  }
+  const n=bs.length;
+  for(let i=0;i<n;i++){const a=bs[i]; if(!a.on)continue; const am=a.vx!==0||a.vy!==0;
+    for(let j=i+1;j<n;j++){const c=bs[j]; if(!c.on)continue; if(!am&&c.vx===0&&c.vy===0)continue;
+      const dx=c.x-a.x, dy=c.y-a.y, rr=a.r+c.r, d2=dx*dx+dy*dy; if(d2>=rr*rr)continue;
+      const d=Math.sqrt(d2)||1e-6, nx=dx/d, ny=dy/d, ia=1/a.m, ic=1/c.m, it=ia+ic, ov=rr-d;
+      a.x-=nx*ov*ia/it; a.y-=ny*ov*ia/it; c.x+=nx*ov*ic/it; c.y+=ny*ov*ic/it;
+      const rv=(a.vx-c.vx)*nx+(a.vy-c.vy)*ny;
+      if(rv>0){const J=(1+EC)*rv/it; a.vx-=J*ia*nx; a.vy-=J*ia*ny; c.vx+=J*ic*nx; c.vy+=J*ic*ny;
+        ev.contacts++; if(ev.sound)ev.sound(rv);
+        if(!ev.first&&(a.kind==="S"||c.kind==="S")){ev.first=(a.kind==="S"?c:a).kind}}
+    }
+  }
+}
+function newEv(){return{pocketed:[],first:null,cushionFirst:false,contacts:0}}
+function simulate(bs,x,y,ang,v){
+  const s=clone(bs).filter(b=>b.on&&b.kind!=="S"); const st=body("S",x,y); st.vx=Math.cos(ang)*v; st.vy=Math.sin(ang)*v; s.push(st);
+  const ev=newEv(); let n=0;
+  while(n<5200){step(s,ev);n++; if(n%8===0&&!s.some(moving))break}
+  ev.bodies=s; return ev;
+}
+
+/* ================= Shot search: the computer and the coach use the same brain ================= */
+function speedFor(dSG,dCP,cos){
+  const a=FR+12, vc=Math.sqrt(2*a*dCP)+18, v1=vc/Math.max(0.35,1.35*cos);
+  return Math.sqrt(v1*v1+2*a*dSG)+10;
+}
+function scoreOutcome(ev,own,opp,allowQ){
+  let s=0,ownN=0,q=false,foul=false,oppN=0;
+  for(const p of ev.pocketed){ if(p.kind==="S")foul=true; else if(p.kind==="Q")q=true; else if(own.includes(p.kind))ownN++; else if(opp.includes(p.kind))oppN++; }
+  s=ownN*10-oppN*7-(foul?30:0)+(q?(allowQ?(ownN?14:8):-4):0);
+  return {s,ownN,q,foul,oppN};
+}
+function findShot(bs,baseY,own,opp,allowQ,opts){
+  opts=opts||{};
+  const xs=[]; for(let i=0;i<=14;i++)xs.push(XMIN+(XMAX-XMIN)*i/14);
+  if(opts.fixedX!=null)xs.length=0, xs.push(opts.fixedX);
+  const targets=bs.filter(b=>b.on&&(own.includes(b.kind)||(allowQ&&b.kind==="Q")));
+  const direct=[],bank=[];
+  const blocked=(ax,ay,bx,by,rad,skip)=>{ // is segment a->b blocked by any coin (except skip)?
+    const dx=bx-ax,dy=by-ay,L2=dx*dx+dy*dy||1e-6;
+    for(const o of bs){ if(!o.on||skip.includes(o))continue;
+      const t=clamp(((o.x-ax)*dx+(o.y-ay)*dy)/L2,0,1), px=ax+dx*t, py=ay+dy*t;
+      if(hyp(o.x-px,o.y-py)<o.r+rad-0.15)return true;}
+    return false;
+  };
+  for(const c of targets){
+    for(let pi=0;pi<4;pi++){
+      const P=POCK[pi], dcp=hyp(P[0]-c.x,P[1]-c.y); if(dcp<0.5)continue;
+      const ux=(P[0]-c.x)/dcp, uy=(P[1]-c.y)/dcp, gx=c.x-ux*(CR+SR), gy=c.y-uy*(CR+SR);
+      if(gx<SR-1.2||gx>B-SR+1.2||gy<SR-1.2||gy>B-SR+1.2)continue;
+      const coinPathBlocked=blocked(c.x,c.y,P[0],P[1],CR,[c]);
+      for(const x of xs){
+        if(!strikerFree(x,baseY,bs))continue;
+        // direct
+        const vx=gx-x, vy=gy-baseY, dsg=hyp(vx,vy), cos=(vx*ux+vy*uy)/dsg;
+        if(cos>0.2){
+          const blk=blocked(x,baseY,gx,gy,SR,[c]);
+          const h=cos*3-dsg/60-dcp/50-(blk?4:0)-(coinPathBlocked?3:0);
+          direct.push({x,ang:Math.atan2(vy,vx),c,pi,cos,dsg,dcp,h,path:[[x,baseY],[gx,gy]],g:[gx,gy],rebound:null});
+        }
+        // one-cushion rebounds (mirror the ghost point across each cushion line)
+        const walls=[["left",SR,null],["right",B-SR,null],["top",null,SR],["bottom",null,B-SR]];
+        for(const [wn,wx,wy] of walls){
+          const mx=wx!=null?2*wx-gx:gx, my=wy!=null?2*wy-gy:gy;
+          const ax=mx-x, ay=my-baseY, L=hyp(ax,ay); if(L<1)continue;
+          let t; if(wx!=null){ if(Math.abs(ax)<1e-6)continue; t=(wx-x)/ax } else { if(Math.abs(ay)<1e-6)continue; t=(wy-baseY)/ay }
+          if(t<=0.02||t>=0.98)continue;
+          const bx=x+ax*t, by=baseY+ay*t; if(bx<SR-0.01||bx>B-SR+0.01||by<SR-0.01||by>B-SR+0.01)continue;
+          const ix=gx-bx, iy=gy-by, il=hyp(ix,iy); if(il<1)continue;
+          const cos2=(ix*ux+iy*uy)/il; if(cos2<0.3)continue;
+          const blk=blocked(x,baseY,bx,by,SR,[])||blocked(bx,by,gx,gy,SR,[c]);
+          const dd=L/0.85;
+          const h=cos2*3-dd/60-dcp/50-(blk?4:0)-(coinPathBlocked?3:0)-0.8;
+          bank.push({x,ang:Math.atan2(ay,ax),c,pi,cos:cos2,dsg:dd,dcp,h,path:[[x,baseY],[bx,by],[gx,gy]],g:[gx,gy],rebound:wn});
+        }
+      }
+    }
+  }
+  const fwd=baseY>37?-1:1, isFwd=c=>Math.sin(c.ang)*fwd>=0.05;
+  for(const arr of [direct,bank]) for(let i=arr.length-1;i>=0;i--) if(!isFwd(arr[i]))arr.splice(i,1);
+  direct.sort((a,b)=>b.h-a.h); bank.sort((a,b)=>b.h-a.h);
+  const pool=direct.slice(0,opts.nDirect||30).concat(bank.slice(0,opts.nBank||10));
+  let best=null; const results=[];
+  for(const cand of pool){
+    const v0=speedFor(cand.dsg,cand.dcp,cand.cos);
+    for(const m of (cand.rebound?[1.1,1.45,1.9]:[0.95,1.2,1.55])){
+      const v=clamp(v0*m,MINV,MAXV);
+      const ev=simulate(bs,cand.x,baseY,cand.ang,v);
+      const o=scoreOutcome(ev,own,opp,allowQ);
+      const r={...cand,v,o,score:o.s+cand.h*0.4+(m===1.2?0.3:0)};
+      results.push(r); if(!best||r.score>best.score)best=r;
+    }
+  }
+  if(!best){ // nothing sensible: tap the nearest coin gently
+    const x=clamp(G.sx,XMIN,XMAX); const t=targets[0]||bs.find(b=>b.on&&b.kind!=="S");
+    const ang=t?Math.atan2(t.y-baseY,t.x-x):(baseY>37?-Math.PI/2:Math.PI/2);
+    best={x,ang,v:180,o:{s:0},score:-99,path:[[x,baseY]],c:t,pi:0,cos:1,rebound:null};
+  }
+  results.sort((a,b)=>b.score-a.score);
+  best.alts=results;
+  return best;
+}
+
+/* ================= Rendering ================= */
+const cv=$("board"), ctx=cv.getContext("2d");
+if(!CanvasRenderingContext2D.prototype.roundRect){CanvasRenderingContext2D.prototype.roundRect=function(x,y,w,h,r){this.moveTo(x+r,y);this.arcTo(x+w,y,x+w,y+h,r);this.arcTo(x+w,y+h,x,y+h,r);this.arcTo(x,y+h,x,y,r);this.arcTo(x,y,x+w,y,r);this.closePath();return this}}
+let SC=5, DPR=1;
+function sizeBoard(){
+  const wrap=$("boardwrap"); const w=wrap.clientWidth;
+  const h=window.innerHeight-(document.querySelector("header.bar").offsetHeight)-250;
+  const css=Math.max(260,Math.min(w,h,560));
+  DPR=Math.min(3,window.devicePixelRatio||1);
+  cv.style.width=css+"px"; cv.style.height=css+"px"; cv.width=Math.round(css*DPR); cv.height=Math.round(css*DPR);
+  SC=css/(B+2*FRAME);
+}
+const X=v=>(v+FRAME)*SC, Y=v=>(v+FRAME)*SC, R=v=>v*SC;
+
+function drawBoard(c,sc){
+  const S=v=>(v+FRAME)*sc, L=v=>v*sc;
+  // frame
+  const fg=c.createLinearGradient(0,0,0,L(B+2*FRAME)); fg.addColorStop(0,"#5B3323"); fg.addColorStop(1,"#3A2016");
+  c.fillStyle=fg; c.beginPath(); c.roundRect(0,0,L(B+2*FRAME),L(B+2*FRAME),L(2.2)); c.fill();
+  c.strokeStyle="rgba(255,230,200,.18)"; c.lineWidth=L(.3); c.strokeRect(L(1.2),L(1.2),L(B+2*FRAME-2.4),L(B+2*FRAME-2.4));
+  // surface
+  const sg=c.createRadialGradient(S(37),S(37),L(5),S(37),S(37),L(55)); sg.addColorStop(0,"#F6E7C6"); sg.addColorStop(1,"#E2C99A");
+  c.fillStyle=sg; c.fillRect(S(0),S(0),L(B),L(B));
+  // grain
+  c.save(); c.globalAlpha=.06; c.strokeStyle="#8A6A3A"; c.lineWidth=L(.12);
+  for(let i=0;i<34;i++){const y=S(i*2.2+0.7); c.beginPath(); c.moveTo(S(0),y); c.bezierCurveTo(S(20),y+L(.6),S(50),y-L(.6),S(B),y+L(.2)); c.stroke()}
+  c.restore();
+  c.strokeStyle="#2B1B12"; c.lineWidth=L(.16);
+  // baselines on all four sides: two lines 3.18 cm apart, 47 cm long, red circles at the ends
+  const base=(horiz,pos)=>{
+    const a=13.5,b=60.5,o1=pos, o2=pos<37?pos+3.18:pos-3.18, mid=(o1+o2)/2;
+    c.beginPath();
+    if(horiz){c.moveTo(S(a),S(o1));c.lineTo(S(b),S(o1));c.moveTo(S(a),S(o2));c.lineTo(S(b),S(o2))}
+    else{c.moveTo(S(o1),S(a));c.lineTo(S(o1),S(b));c.moveTo(S(o2),S(a));c.lineTo(S(o2),S(b))}
+    c.stroke();
+    for(const e of [a+1.59,b-1.59]){const cx=horiz?e:mid, cy=horiz?mid:e; c.beginPath(); c.arc(S(cx),S(cy),L(1.59),0,7); c.fillStyle="#B8262C"; c.fill(); c.stroke();}
+  };
+  base(true,10.15); base(true,B-10.15); base(false,10.15); base(false,B-10.15);
+  // diagonal arrows
+  for(const [sx,sy] of [[1,1],[-1,1],[1,-1],[-1,-1]]){
+    const ox=sx>0?0:B, oy=sy>0?0:B, u=1/Math.SQRT2;
+    const x0=ox+sx*5*u+sx*2.5, y0=oy+sy*5*u+sy*2.5, x1=x0+sx*26.7*u, y1=y0+sy*26.7*u;
+    c.beginPath(); c.moveTo(S(x0),S(y0)); c.lineTo(S(x1),S(y1)); c.stroke();
+    c.beginPath(); c.moveTo(S(x1),S(y1)); c.lineTo(S(x1-sx*1.4),S(y1)); c.moveTo(S(x1),S(y1)); c.lineTo(S(x1),S(y1-sy*1.4)); c.stroke();
+    c.beginPath(); c.arc(S(x0+sx*0.9*u),S(y0+sy*0.9*u),L(.9),0,7); c.stroke();
+  }
+  // centre design
+  c.beginPath(); c.arc(S(37),S(37),L(8.5),0,7); c.stroke();
+  c.beginPath(); c.arc(S(37),S(37),L(7.6),0,7); c.lineWidth=L(.08); c.stroke(); c.lineWidth=L(.16);
+  c.save(); c.translate(S(37),S(37)); c.fillStyle="rgba(184,38,44,.85)";
+  for(let k=0;k<8;k++){c.rotate(Math.PI/4); c.beginPath(); c.moveTo(0,-L(1.8)); c.quadraticCurveTo(L(1.2),-L(4.6),0,-L(7.2)); c.quadraticCurveTo(-L(1.2),-L(4.6),0,-L(1.8)); c.fill()}
+  c.restore();
+  c.beginPath(); c.arc(S(37),S(37),L(1.59),0,7); c.fillStyle="#B8262C"; c.fill(); c.stroke();
+  // pockets
+  for(const P of POCK){const g=c.createRadialGradient(S(P[0]),S(P[1]),0,S(P[0]),S(P[1]),L(PR)); g.addColorStop(0,"#000"); g.addColorStop(1,"#1d120c");
+    c.beginPath(); c.arc(S(P[0]),S(P[1]),L(PR),0,7); c.fillStyle=g; c.fill(); c.strokeStyle="rgba(0,0,0,.6)"; c.lineWidth=L(.25); c.stroke();}
+}
+function drawCoin(c,sc,b,alpha){
+  const S=v=>(v+FRAME)*sc, L=v=>v*sc, x=S(b.x), y=S(b.y), r=L(b.r);
+  c.save(); if(alpha!=null)c.globalAlpha=alpha;
+  c.beginPath(); c.arc(x+L(.18),y+L(.24),r,0,7); c.fillStyle="rgba(40,20,5,.32)"; c.fill();
+  const col={W:["#FFF9EE","#D9C9A8"],B:["#4A3A30","#140D09"],Q:["#E2474C","#8E151B"],S:["#F7F1E4","#CDBFA4"]}[b.kind];
+  const g=c.createRadialGradient(x-r*.35,y-r*.35,r*.1,x,y,r); g.addColorStop(0,col[0]); g.addColorStop(1,col[1]);
+  c.beginPath(); c.arc(x,y,r,0,7); c.fillStyle=g; c.fill();
+  c.strokeStyle=b.kind==="B"?"rgba(255,255,255,.18)":"rgba(0,0,0,.18)"; c.lineWidth=Math.max(1,r*.09);
+  c.beginPath(); c.arc(x,y,r*.68,0,7); c.stroke();
+  c.beginPath(); c.arc(x,y,r*.38,0,7); c.stroke();
+  if(b.kind==="S"){c.strokeStyle="#B8262C"; c.lineWidth=r*.13; c.beginPath(); c.arc(x,y,r*.8,0,7); c.stroke(); c.beginPath(); c.arc(x,y,r*.22,0,7); c.fillStyle="#B8262C"; c.fill();}
+  c.restore();
+}
+function ray(x,y,dx,dy){ // first thing the striker meets going straight
+  let best={t:1e9,type:"none"};
+  for(const o of G.bodies){ if(!o.on||o.kind==="S")continue;
+    const fx=x-o.x, fy=y-o.y, rr=o.r+SR, b=fx*dx+fy*dy, cc=fx*fx+fy*fy-rr*rr, disc=b*b-cc;
+    if(disc<0)continue; const t=-b-Math.sqrt(disc); if(t>0.01&&t<best.t)best={t,type:"coin",o};}
+  const lim=[dx<0?(SR-x)/dx:dx>0?(B-SR-x)/dx:1e9, dy<0?(SR-y)/dy:dy>0?(B-SR-y)/dy:1e9];
+  const tw=Math.min(...lim); if(tw<best.t)best={t:tw,type:"wall",vertical:lim[0]<lim[1]};
+  return best;
+}
+function draw(){
+  const c=ctx; c.setTransform(DPR,0,0,DPR,0,0); c.clearRect(0,0,cv.width,cv.height);
+  drawBoard(c,SC);
+  // coach overlay
+  const h=G.hint;
+  if(h&&G.phase==="aim"&&G.turn==="P"){
+    c.save(); c.setLineDash([R(.8),R(.6)]); c.lineWidth=Math.max(1.5,R(.28)); c.strokeStyle="rgba(47,122,69,.95)";
+    c.beginPath(); c.moveTo(X(h.path[0][0]),Y(h.path[0][1])); for(const p of h.path.slice(1))c.lineTo(X(p[0]),Y(p[1])); c.stroke();
+    if(h.c){const P=POCK[h.pi]; c.beginPath(); c.moveTo(X(h.c.x),Y(h.c.y)); c.lineTo(X(P[0]),Y(P[1])); c.stroke();
+      c.setLineDash([]); c.beginPath(); c.arc(X(h.g?h.g[0]:h.c.x),Y(h.g?h.g[1]:h.c.y),R(SR),0,7); c.stroke();}
+    c.setLineDash([R(.5),R(.5)]); c.beginPath(); c.arc(X(h.x),Y(BY_P),R(SR+.4),0,7); c.stroke();
+    c.restore();
+  }
+  // coins
+  for(const b of G.bodies) if(b.on&&b.kind!=="S") drawCoin(c,SC,b);
+  // striker (resting or moving)
+  const st=G.bodies.find(b=>b.kind==="S"&&b.on);
+  if(st) drawCoin(c,SC,st);
+  else if(G.phase==="aim"||G.phase==="cpu"){
+    const y=G.turn==="P"?BY_P:BY_C, x=G.turn==="C"&&G.cpu?G.cpu.x:G.sx;
+    const ok=strikerFree(x,y);
+    drawCoin(c,SC,{kind:"S",x,y,r:SR},ok?1:.45);
+    if(!ok){c.strokeStyle="#C2272D";c.lineWidth=2;c.beginPath();c.arc(X(x),Y(y),R(SR+.5),0,7);c.stroke()}
+    // aim arrow
+    const a=G.turn==="P"?G.aim:(G.cpu&&G.cpu.showAim?G.cpu:null);
+    if(a&&a.p>0){
+      const dx=Math.cos(a.ang), dy=Math.sin(a.ang);
+      if(G.turn==="P"&&G.guide){
+        const r1=ray(x,y,dx,dy); const t=Math.min(r1.t,90);
+        c.save(); c.setLineDash([R(.5),R(.7)]); c.strokeStyle="rgba(43,29,22,.55)"; c.lineWidth=Math.max(1,R(.18));
+        c.beginPath(); c.moveTo(X(x),Y(y)); c.lineTo(X(x+dx*t),Y(y+dy*t)); c.stroke();
+        if(r1.type==="coin"){const cx=x+dx*t, cy=y+dy*t; c.setLineDash([]); c.beginPath(); c.arc(X(cx),Y(cy),R(SR),0,7); c.stroke();
+          const nx=r1.o.x-cx, ny=r1.o.y-cy, nl=hyp(nx,ny); c.strokeStyle="rgba(194,39,45,.8)"; c.lineWidth=Math.max(1.5,R(.25));
+          c.beginPath(); c.moveTo(X(r1.o.x),Y(r1.o.y)); c.lineTo(X(r1.o.x+nx/nl*14),Y(r1.o.y+ny/nl*14)); c.stroke();}
+        else if(r1.type==="wall"&&t<90){const bx=x+dx*t, by=y+dy*t, rdx=r1.vertical?-dx:dx, rdy=r1.vertical?dy:-dy; c.beginPath(); c.moveTo(X(bx),Y(by)); c.lineTo(X(bx+rdx*12),Y(by+rdy*12)); c.stroke();}
+        c.restore();
+      }
+      const back=G.turn==="P"&&Math.sin(a.ang)>-0.05;
+      const len=4+a.p*14, col=back?"rgba(120,120,120,.6)":a.match?"#2F7A45":`hsl(${120-a.p*120},70%,42%)`;
+      c.save(); c.strokeStyle=col; c.fillStyle=col; c.lineWidth=Math.max(3,R(.7)); c.lineCap="round";
+      const ex=x+dx*(SR+len), ey=y+dy*(SR+len);
+      c.beginPath(); c.moveTo(X(x+dx*SR),Y(y+dy*SR)); c.lineTo(X(ex),Y(ey)); c.stroke();
+      c.beginPath(); c.moveTo(X(ex+dx*1.6),Y(ey+dy*1.6)); c.lineTo(X(ex-dy*1.1),Y(ey+dx*1.1)); c.lineTo(X(ex+dy*1.1),Y(ey-dx*1.1)); c.fill();
+      c.restore();
+      if(G.turn==="P"){c.font=`700 ${Math.round(R(2.4))}px Figtree,system-ui,sans-serif`; c.fillStyle="#2B1D16"; c.textAlign="center";
+        c.fillText(Math.round(a.p*100)+"%",X(x-dx*5),Y(y-dy*5)+R(.8));}
+    }
+  }
+}
+
+/* ================= Main loop ================= */
+let last=0, acc=0;
+function frame(t){
+  requestAnimationFrame(frame);
+  if(G.mode==="menu"||$("game").hidden){last=t;return}
+  const dt=Math.min(0.05,(t-last)/1000||0); last=t;
+  if(G.phase==="moving"){
+    acc+=dt; let n=0; while(acc>=DT&&n<60){step(G.bodies,G.ev);acc-=DT;n++}
+    if(!G.bodies.some(moving)){acc=0; shotFinished()}
+  }
+  if(G.cpu&&G.cpu.anim){const k=clamp((t-G.cpu.t0)/600,0,1); G.cpu.x=G.cpu.fromX+(G.cpu.toX-G.cpu.fromX)*(1-(1-k)*(1-k));}
+  draw();
+}
+requestAnimationFrame(frame);
+
+/* ================= Shooting ================= */
+function shoot(ang,v){
+  const y=G.turn==="P"?BY_P:BY_C, x=G.turn==="P"?G.sx:G.cpu.x;
+  const st=body("S",x,y); st.vx=Math.cos(ang)*v; st.vy=Math.sin(ang)*v;
+  G.bodies=G.bodies.filter(b=>b.kind!=="S"); G.bodies.push(st);
+  G.ev=newEv(); G.ev.sound=click; G.phase="moving"; G.aim=null; G.hint=null; $("coachbox").hidden=true; G.shots++;
+  updateUI();
+}
+function shotFinished(){
+  const ev=G.ev; G.bodies=G.bodies.filter(b=>b.kind!=="S"); G.phase="resolving";
+  if(G.mode==="cpu")resolveMatch(ev); else if(G.mode==="practice")resolvePractice(ev); else if(G.mode==="lesson")resolveLesson(ev);
+}
+
+/* ---------- vs computer rules ---------- */
+function colorOf(who){return who==="P"?"W":"B"}
+function pocketedCount(kind){return 9-onBoard(kind)}
+function queenCovered(){return G.queen==="P"||G.queen==="C"}
+function resolveMatch(ev){
+  const who=G.turn, me=colorOf(who), opp=me==="W"?"B":"W", nm=who==="P"?"You":"Computer";
+  const pk=ev.pocketed.filter(p=>p.kind!=="S"), foul=ev.pocketed.some(p=>p.kind==="S");
+  const ownIn=pk.filter(p=>p.kind===me), oppIn=pk.filter(p=>p.kind===opp), qIn=pk.find(p=>p.kind==="Q");
+  const had=pocketedCount(me)-ownIn.length;
+  const msg=[]; let keep=false;
+  const queenBody=G.bodies.find(b=>b.kind==="Q");
+  if(foul){
+    ownIn.forEach(p=>respot(p.b)); if(qIn)respot(queenBody);
+    if(G.queen==="pending:"+who){respot(queenBody);G.queen="board"}
+    const pen=G.bodies.find(b=>!b.on&&b.kind===me); if(pen){respot(pen); msg.push(`Foul: striker pocketed. One ${me==="W"?"white":"black"} coin goes back to the centre.`)} else msg.push("Foul: striker pocketed. Turn over.");
+    oppIn.length&&msg.push(`${oppIn.length} ${opp==="W"?"white":"black"} coin${oppIn.length>1?"s":""} stay pocketed for the other side.`);
+  } else {
+    if(G.queen==="pending:"+who){
+      if(ownIn.length){G.queen=who;msg.push(`${nm==="You"?"You":"Computer"} covered the queen!`)}
+      else{respot(queenBody);G.queen="board";msg.push("Queen not covered, so it goes back to the centre.")}
+    }
+    if(qIn){
+      if(had===0&&ownIn.length===0){respot(queenBody);msg.push("The queen can only be taken after one of your own coins. It goes back.")}
+      else if(ownIn.length){G.queen=who;msg.push(`Queen pocketed and covered in one shot!`);keep=true}
+      else{G.queen="pending:"+who;keep=true;msg.push(`Queen pocketed. Now cover it: pocket a ${me==="W"?"white":"black"} coin with the next shot.`)}
+    }
+    if(ownIn.length){keep=true; msg.unshift(`${nm} pocketed ${ownIn.length} ${me==="W"?"white":"black"} coin${ownIn.length>1?"s":""}.`)}
+    if(oppIn.length) msg.push(`${oppIn.length} ${opp==="W"?"white":"black"} coin${oppIn.length>1?"s":""} went in for the other side.`);
+    // last coin before the queen is covered goes back
+    if(onBoard(me)===0&&!queenCovered()){const last=ownIn.length?ownIn[ownIn.length-1].b:G.bodies.find(b=>!b.on&&b.kind===me); respot(last); keep=false; msg.push("Your last coin can't go in before the queen is covered. It goes back to the centre.")}
+    if(onBoard(opp)===0&&!queenCovered()){const last=G.bodies.find(b=>!b.on&&b.kind===opp); respot(last)}
+  }
+  if(who==="P")feedbackP(ev,{own:[me],foul,ownN:ownIn.length,oppN:oppIn.length,q:!!qIn});
+  // board over?
+  const winner=onBoard("W")===0?"P":onBoard("B")===0?"C":null;
+  if(winner){return boardOver(winner)}
+  if(!msg.length) msg.push(ev.contacts?`${nm==="You"?"No coin went in.":"Computer missed."} ${keep?"":"Turn passes."}`:(nm==="You"?"You didn't touch a coin. Turn passes.":"Computer missed every coin."));
+  if(keep&&!foul) msg.push(who==="P"?"Shoot again.":"Computer shoots again.");
+  if(who==="P"&&G.coachOn&&G.lastFeedback){ const rules=msg.filter(m=>!/^You pocketed/.test(m)); say((G.lastFeedback+" "+rules.join(" ")).trim(),"Coach",!foul&&ownIn.length>0) }
+  else say(msg.join(" "),who==="C"?"CPU":"Ref");
+  G.lastFeedback="";
+  G.turn=keep&&!foul?who:(who==="P"?"C":"P");
+  nextTurn();
+}
+function boardOver(winner){
+  const loser=winner==="P"?"C":"P", lc=colorOf(loser);
+  let pts=onBoard(lc); const q=G.queen===winner&&G.score[winner]<22; if(q)pts+=3;
+  G.score[winner]+=pts; G.phase="over"; updateUI();
+  const matchDone=G.len===0||G.score[winner]>=G.len;
+  if(matchDone){ if(winner==="P")stats.win[G.diff]++; else stats.loss[G.diff]++; saveStats(); }
+  const ov=$("overlay");
+  ov.innerHTML=`<div class="card"><span class="label">${matchDone?"Game over":"Board "+G.boardNo+" done"}</span>
+    <div class="big">${winner==="P"?"You win!":"Computer wins"}</div>
+    <div class="muted">${winner==="P"?"You":"Computer"} scored ${pts} point${pts===1?"":"s"}: ${onBoard(lc)} coin${onBoard(lc)===1?"":"s"} left${q?" + 3 for the queen":""}.</div>
+    ${G.len?`<div class="num" style="font-weight:800">You ${G.score.P} – ${G.score.C} Computer · to ${G.len}</div>`:""}
+    ${matchDone?`<button class="btn red" data-ov="again">Play again</button>`:`<button class="btn red" data-ov="next">Next board</button>`}
+    <button class="btn ghost" data-ov="menu">Menu</button></div>`;
+  ov.hidden=false;
+}
+function nextTurn(){
+  G.aim=null; G.hint=null; G.cpu=null; $("coachbox").hidden=true;
+  if(G.turn==="P"){G.phase="aim"; if(!strikerFree(G.sx,BY_P))G.sx=freeX(G.sx,BY_P); updateUI(); return}
+  G.phase="cpu"; updateUI(); say("Computer is lining up a shot…","CPU");
+  setTimeout(cpuThink,450);
+}
+function freeX(x,y){for(let d=0;d<44;d+=0.25){for(const s of [1,-1]){const nx=clamp(x+s*d,XMIN,XMAX); if(strikerFree(nx,y))return nx}}return x}
+function cpuThink(){
+  if(G.mode!=="cpu"||G.phase!=="cpu")return;
+  const allowQ=G.bodies.find(b=>b.kind==="Q").on&&pocketedCount("B")>0&&!G.queen.startsWith("pending");
+  const lvl={easy:{nd:14,nb:4,ang:0.055,pw:0.18,pick:6},medium:{nd:24,nb:8,ang:0.022,pw:0.09,pick:2},hard:{nd:34,nb:12,ang:0.007,pw:0.04,pick:1}}[G.diff];
+  const best=findShot(G.bodies,BY_C,["B"],["W"],allowQ,{nDirect:lvl.nd,nBank:lvl.nb});
+  let pick=best;
+  if(lvl.pick>1&&best.alts&&best.alts.length){const good=best.alts.filter(a=>a.o.s>0).slice(0,lvl.pick); if(good.length)pick=good[Math.floor(Math.random()*good.length)]}
+  const gauss=()=>{let u=0,v=0;while(!u)u=Math.random();while(!v)v=Math.random();return Math.sqrt(-2*Math.log(u))*Math.cos(2*Math.PI*v)};
+  const ang=pick.ang+gauss()*lvl.ang, v=clamp(pick.v*(1+gauss()*lvl.pw),MINV,MAXV);
+  G.cpu={fromX:37,toX:pick.x,x:37,t0:performance.now(),anim:true,ang,p:(v-MINV)/(MAXV-MINV),showAim:false};
+  setTimeout(()=>{if(!G.cpu)return; G.cpu.anim=false; G.cpu.x=pick.x; G.cpu.showAim=true;},650);
+  setTimeout(()=>{if(G.mode!=="cpu"||G.phase!=="cpu"||!G.cpu)return; shoot(ang,v)},1350);
+}
+
+/* ---------- practice ---------- */
+function resolvePractice(ev){
+  const pk=ev.pocketed.filter(p=>p.kind!=="S"), foul=ev.pocketed.some(p=>p.kind==="S");
+  if(foul){pk.forEach(p=>respot(p.b))}
+  feedbackP(ev,{own:["W","B"],foul,ownN:pk.filter(p=>p.kind!=="Q").length,oppN:0,q:pk.some(p=>p.kind==="Q")});
+  if(!G.bodies.some(b=>b.on)){G.phase="over";updateUI();
+    $("overlay").innerHTML=`<div class="card"><span class="label">Board cleared</span><div class="big">${G.shots} shots</div><div class="muted">Fewer shots next time? The pros clear a board in 6 or 7 turns.</div><button class="btn red" data-ov="rerack">Re-rack</button><button class="btn ghost" data-ov="menu">Menu</button></div>`;
+    $("overlay").hidden=false; return}
+  G.turn="P"; nextTurn();
+}
+
+/* ---------- lessons ---------- */
+function onLine(pi,x,y,t){const P=POCK[pi];return[P[0]+(x-P[0])*t,P[1]+(y-P[1])*t]}
+const LESSONS=[
+ {id:"straight",title:"Straight shot",sub:"Striker, coin and pocket in one line",
+  teach:"The easiest pot in carrom. When the striker, the coin and the pocket sit on one straight line, hit the coin dead centre and it rolls straight in.",
+  tip:"Slide the striker until it lines up behind the coin and the top-left pocket, pull straight back, and use about half power.",
+  setup:()=>{const c=onLine(0,22,BY_P,0.32);return{coins:[["W",...c]],sx:30}},goal:{kind:["W"],count:1}},
+ {id:"cut",title:"Cut shot",sub:"Send a coin in at an angle",
+  teach:"Most coins aren't in a straight line. Picture a 'ghost striker' touching the coin on the side away from the pocket. Aim your striker at that ghost, not at the coin.",
+  tip:"The coin always travels along the line from the contact point through its own centre. Hit its right side to send it left.",
+  setup:()=>({coins:[["W",24,20]],sx:44}),goal:{kind:["W"],count:1}},
+ {id:"soft",title:"Soft touch",sub:"Pot without the striker following in",
+  teach:"When a coin sits right at the pocket mouth, a hard straight hit sends the striker in after it. That's a foul, and a coin goes back.",
+  tip:"Use very little power (15–30%), or hit the coin slightly off-centre so the striker glances away.",
+  setup:()=>{const c=onLine(1,52,BY_P,0.075);return{coins:[["W",...c]],sx:40}},goal:{kind:["W"],count:1,noFoul:true}},
+ {id:"rebound",title:"Rebound shot",sub:"Reach a coin behind your baseline",
+  teach:"This white sits behind your baseline, and you're not allowed to shoot backwards. Bounce the striker off the top cushion so it comes back down and knocks the coin into the bottom-left pocket.",
+  tip:"The striker leaves a cushion at the same angle it hits it, like light off a mirror. Imagine the coin reflected beyond the top cushion and aim there. Use more power than a straight shot, around 50–70%.",
+  setup:()=>({coins:[["W",6,67.5],["B",30,40],["B",44,34]],sx:30}),goal:{kind:["W"],count:1}},
+ {id:"rail",title:"Rail shot",sub:"Run a coin along the cushion",
+  teach:"A coin resting against the side cushion can be sent along it into the corner. Hit it thin, from the board side, so it slides along the rail.",
+  tip:"Aim to touch only the inner edge of the coin. Too full and it bounces off the cushion and stops short.",
+  setup:()=>({coins:[["W",B-CR-0.4,30]],sx:52}),goal:{kind:["W"],count:1}},
+ {id:"queen",title:"Take & cover the queen",sub:"Pocket the queen, then cover it",
+  teach:"The queen is worth 3 points, but only if you cover it: pocket one of your own coins in the very next shot. If you miss, the queen goes back to the centre.",
+  tip:"Plan both shots before taking the queen. Here, pot the queen into the top-left, then cover with the white near the top-right.",
+  setup:()=>({coins:[["Q",9,15],["W",62,14]],sx:36,queenFirst:true}),goal:{queen:true}},
+ {id:"break",title:"The break",sub:"Open the rack and pocket a coin",
+  teach:"A strong break spreads the coins and often pockets one, which keeps your turn. Players break from the centre of the baseline or just off it.",
+  tip:"Put the striker in the middle, aim at the queen or the coin just beside it, and use full power. A slightly off-centre hit spreads coins towards the pockets.",
+  setup:()=>({rack:true,sx:37}),goal:{anyCoin:true}}
+];
+function startLesson(i){
+  const L=LESSONS[i]; G.lesson={i,L,progress:0,queenIn:false}; G.tries=0;
+  G.mode="lesson"; show("game"); setupLesson(); G.coachOn=true;
+  say(L.teach,"Coach",true);
+}
+function setupLesson(){
+  const L=G.lesson.L, s=L.setup();
+  G.bodies=s.rack?rack():s.coins.map(([k,x,y])=>body(k,x,y));
+  G.sx=s.sx; G.turn="P"; G.phase="aim"; G.queen="board"; G.lesson.queenIn=false; G.lesson.count=0;
+  $("overlay").hidden=true; updateUI();
+}
+function resolveLesson(ev){
+  const L=G.lesson.L, pk=ev.pocketed.filter(p=>p.kind!=="S"), foul=ev.pocketed.some(p=>p.kind==="S");
+  const g=L.goal; let done=false, progress=false;
+  if(!foul){
+    if(g.queen){
+      if(pk.some(p=>p.kind==="Q")){G.lesson.queenIn=true;progress=true}
+      if(G.lesson.queenIn&&pk.some(p=>p.kind==="W")) done=true;
+      else if(G.lesson.queenIn&&!pk.some(p=>p.kind==="Q")) progress=false;
+    } else if(g.anyCoin){ if(pk.some(p=>p.kind==="W"||p.kind==="B"))done=true }
+    else { G.lesson.count+=pk.filter(p=>g.kind.includes(p.kind)).length; if(G.lesson.count>=g.count)done=true }
+  }
+  feedbackP(ev,{own:g.queen?(G.lesson.queenIn?["W"]:["Q"]):g.anyCoin?["W","B"]:g.kind,foul,ownN:pk.filter(p=>p.kind!=="Q").length,oppN:0,q:pk.some(p=>p.kind==="Q"),lesson:true});
+  if(done){
+    G.tries++; const stars=G.tries<=1?3:G.tries<=2?2:1; const id=L.id;
+    stats.lessons[id]=Math.max(stats.lessons[id]||0,stars); saveStats();
+    G.phase="over"; updateUI();
+    const nxt=G.lesson.i+1<LESSONS.length;
+    $("overlay").innerHTML=`<div class="card"><span class="label">Lesson ${G.lesson.i+1} complete</span><div class="stars">${"★".repeat(stars)}${"☆".repeat(3-stars)}</div><div class="big">${L.title}</div><div class="muted">${G.tries===1?"First try!":"Done in "+G.tries+" tries."} ${stars<3?"Replay it for 3 stars.":""}</div>
+      ${nxt?`<button class="btn red" data-ov="nextlesson">Next lesson</button>`:""}<button class="btn ghost" data-ov="retry">Try again</button><button class="btn ghost" data-ov="lessons">All lessons</button></div>`;
+    $("overlay").hidden=false; return;
+  }
+  if(progress){G.turn="P";nextTurn();say("Queen's in. Now cover it: pocket the white coin.","Coach",true);return}
+  G.tries++;
+  setTimeout(()=>{ if(G.mode!=="lesson")return; setupLesson(); },1200);
+  G.phase="wait"; updateUI();
+}
+
+/* ---------- coaching ---------- */
+G.coachOn=true;
+function feedbackP(ev,o){
+  let t="", good=false;
+  if(o.foul) t=ev.first?"Foul: the striker followed the coin in. Use less power, or hit the coin a little off-centre so the striker glances away.":"Foul: the striker went straight into a pocket. Check your line with the aim guide before you shoot.";
+  else if(o.ownN||(o.q&&o.own.includes("Q"))){good=true; t=["Nice shot!","Clean pot!","Good one!","Lovely!"][Math.floor(Math.random()*4)]+(o.lesson?"":" You keep the turn.");}
+  else if(!ev.contacts) t="Missed everything. Pull back in a straight line away from where you want to go. The dashed guide shows the first coin you'll hit.";
+  else if(ev.first&&!o.own.includes(ev.first)&&ev.first!=="Q"&&G.mode==="cpu") t="You hit a black coin first. That's legal, but it often leaves the computer an easy shot. Aim for your white coins.";
+  else if(o.oppN) t="You pocketed a black coin. It counts for the computer. Watch where the struck coin will travel.";
+  else t="Close. To pot a coin, aim at the ghost spot on the far side of the coin from the pocket, not at the coin's centre. Tap Coach to see it.";
+  G.lastFeedback=t;
+  if(G.coachOn) say(t,"Coach",good);
+}
+function hint(){
+  if(G.phase!=="aim"||G.turn!=="P")return;
+  let own,opp=[],allowQ=false;
+  if(G.mode==="cpu"){own=["W"];opp=["B"];allowQ=G.bodies.find(b=>b.kind==="Q").on&&pocketedCount("W")>0&&!G.queen.startsWith("pending")}
+  else if(G.mode==="lesson"){const g=G.lesson.L.goal; own=g.queen?(G.lesson.queenIn?["W"]:[]):g.anyCoin?["W","B"]:g.kind; allowQ=!!(g.queen&&!G.lesson.queenIn)}
+  else {own=["W","B"];allowQ=true}
+  $("hintbtn").disabled=true; $("hintbtn").textContent="Thinking…";
+  setTimeout(()=>{
+    const best=findShot(G.bodies,BY_P,own,opp,allowQ,{nDirect:40,nBank:16});
+    $("hintbtn").disabled=false; $("hintbtn").textContent="Coach";
+    G.hint=best; showCoach(best);
+  },30);
+}
+function shotType(h){
+  if(h.rebound)return{t:"Rebound shot",d:`Bounce the striker off the ${h.rebound} cushion first. It comes off at the same angle it goes in, so aim at the target's mirror image beyond the cushion.`};
+  const cut=Math.acos(clamp(h.cos,-1,1))*180/Math.PI;
+  const vx=Math.cos(h.ang),vy=Math.sin(h.ang),P=POCK[h.pi]||[0,0],ux=P[0]-(h.c?h.c.x:0),uy=P[1]-(h.c?h.c.y:0);
+  const side=(vx*uy-vy*ux)<0?"right":"left";
+  if(cut<9)return{t:"Straight shot",d:"Striker, coin and pocket are in one line. Hit the coin full in the middle."};
+  if(cut<42)return{t:"Cut shot",d:`Hit the coin on its ${side} side so it angles off into the pocket. Aim at the ghost circle, where your striker must be when it touches the coin.`};
+  return{t:"Thin cut",d:`Just graze the ${side} edge of the coin. A thin hit passes on little speed, so give it more power.`};
+}
+function showCoach(h){
+  const box=$("coachbox");
+  if(!h||!h.c||h.score<-50){box.innerHTML=`<h3>No clear pot</h3><p>Nothing goes in cleanly from here. Play a soft shot that leaves the coins near your pockets, away from the computer's side.</p>`;box.hidden=false;return}
+  const st=shotType(h), place=h.x<29?"left part":h.x>45?"right part":"middle";
+  const pw=Math.round((h.v-MINV)/(MAXV-MINV)*100);
+  const res=h.o&&h.o.ownN?"":(h.o&&h.o.q?"":" (risky: no pot is guaranteed)");
+  box.innerHTML=`<div class="row" style="justify-content:space-between"><h3>${st.t}</h3><span class="label">${KNAME[h.c.kind]} → ${PNAME[h.pi]}</span></div>
+    <p>${st.d}</p>
+    <p class="muted">Place the striker on the ${place} of your baseline and shoot at about <b>${pw}%</b> power${res}. The green dashed line shows the path; your arrow turns green when you match it.</p>
+    <div class="row"><button class="btn primary sm" id="placebtn">Place striker for me</button><button class="btn ghost sm" id="hidecoach">Hide</button></div>`;
+  box.hidden=false;
+  $("placebtn").onclick=()=>{G.sx=h.x;$("sx").value=h.x;toast("Striker placed. Now pull back to match the green line.")};
+  $("hidecoach").onclick=()=>{G.hint=null;box.hidden=true};
+}
+
+/* ================= Input ================= */
+function toBoard(e){const r=cv.getBoundingClientRect();return[(e.clientX-r.left)/SC-FRAME,(e.clientY-r.top)/SC-FRAME]}
+cv.addEventListener("pointerdown",e=>{
+  if(G.phase!=="aim"||G.turn!=="P")return;
+  unlockAudio();
+  cv.setPointerCapture(e.pointerId);
+  const [bx,by]=toBoard(e);
+  if(hyp(bx-G.sx,by-BY_P)<SR*1.8){G.drag={mode:"place",ox:bx-G.sx}}
+  else G.drag={mode:"aim",x0:bx,y0:by};
+  e.preventDefault();
+});
+cv.addEventListener("pointermove",e=>{
+  if(!G.drag)return; const [bx,by]=toBoard(e);
+  if(G.drag.mode==="place"){
+    if(Math.abs(by-BY_P)>9&&hyp(bx-G.sx,by-BY_P)>6){G.drag={mode:"aim",x0:G.sx,y0:BY_P};return}
+    G.sx=clamp(bx-G.drag.ox,XMIN,XMAX); $("sx").value=G.sx; return}
+  const dx=G.drag.x0-bx, dy=G.drag.y0-by, L=hyp(dx,dy);
+  if(L<0.8){G.aim=null;return}
+  const p=clamp(L/16,0,1), ang=Math.atan2(dy,dx);
+  let match=false; if(G.hint){const da=Math.abs(((ang-G.hint.ang+Math.PI*3)%(Math.PI*2))-Math.PI); const hp=(G.hint.v-MINV)/(MAXV-MINV); match=da<0.022&&Math.abs(p-hp)<0.09&&Math.abs(G.sx-G.hint.x)<0.4}
+  G.aim={ang,p,match};
+});
+function endDrag(e){
+  if(!G.drag)return; const d=G.drag; G.drag=null;
+  if(d.mode==="place")return;
+  const a=G.aim; G.aim=null;
+  if(!a||a.p<0.04)return;
+  if(Math.sin(a.ang)>-0.05){toast("Shots must go forward, away from your baseline. Use a cushion to reach coins behind it.");return}
+  if(!strikerFree(G.sx,BY_P)){toast("The striker is touching a coin. Slide it to a free spot.");return}
+  shoot(a.ang,MINV+a.p*(MAXV-MINV));
+}
+cv.addEventListener("pointerup",endDrag); cv.addEventListener("pointercancel",()=>{G.drag=null;G.aim=null});
+$("sx").addEventListener("input",e=>{if(G.phase==="aim"&&G.turn==="P")G.sx=+e.target.value; else e.target.value=G.sx});
+
+/* ================= Sound (tiny click on collisions) ================= */
+let AC=null;
+function unlockAudio(){try{if(!AC)AC=new (window.AudioContext||window.webkitAudioContext)();if(AC.state==="suspended")AC.resume()}catch(e){}}
+let lastClick=0;
+function click(rv){
+  if(!AC||G.phase!=="moving")return; const now=AC.currentTime; if(now-lastClick<0.03)return; lastClick=now;
+  try{const o=AC.createOscillator(),g=AC.createGain(); o.type="triangle"; o.frequency.value=1400+Math.random()*500;
+    g.gain.setValueAtTime(Math.min(0.25,rv/900),now); g.gain.exponentialRampToValueAtTime(0.0001,now+0.05);
+    o.connect(g).connect(AC.destination); o.start(now); o.stop(now+0.06)}catch(e){}
+}
+
+/* ================= Screens & UI ================= */
+function show(id){
+  for(const s of ["menu","lessons","tips","game"])$(s).hidden=s!==id;
+  $("backbtn").textContent=id==="menu"?"Scorecard":"Back";
+  $("subtitle").textContent=id==="game"?(G.mode==="cpu"?"Vs computer · "+G.diff:G.mode==="lesson"?"Lesson":"Free practice"):id==="lessons"?"Lessons":id==="tips"?"Real-board tips":"Carrom practice";
+  window.scrollTo(0,0);
+  if(id==="game"){sizeBoard()} else G.mode=id==="menu"?"menu":G.mode;
+  if(id==="menu")renderMenu(); if(id==="lessons")renderLessons();
+}
+function updateUI(){
+  if($("game").hidden)return;
+  const cpu=G.mode==="cpu";
+  $("nameP").textContent=G.mode==="lesson"?"Lesson "+(G.lesson.i+1):"You";
+  $("nameC").textContent=cpu?"Computer":G.mode==="lesson"?"Tries":"Shots";
+  $("ctP").textContent=cpu?(G.len?G.score.P:pocketedCount("W")):G.mode==="lesson"?"★".repeat(stats.lessons[G.lesson.L.id]||0)||"–":G.bodies.filter(b=>!b.on&&b.kind!=="S").length;
+  $("ctC").textContent=cpu?(G.len?G.score.C:pocketedCount("B")):G.mode==="lesson"?G.tries:G.shots;
+  document.querySelector("#sideC .dot").className="dot "+(cpu?"B":"Q");
+  document.querySelector("#sideP .dot").className="dot W";
+  $("sideP").classList.toggle("active",cpu&&G.turn==="P"); $("sideC").classList.toggle("active",cpu&&G.turn==="C");
+  const qs=G.queen==="board"?"on board":G.queen==="P"?"yours":G.queen==="C"?"CPU's":"to cover";
+  $("midinfo").innerHTML=cpu?(G.len?`To ${G.len}<b class="num">${pocketedCount("W")}–${pocketedCount("B")}</b>`:`Queen<b>${qs}</b>`):G.mode==="lesson"?`<b style="font-size:15px">${G.lesson.L.title}</b>`:`Pocketed<b class="num">${G.bodies.filter(b=>!b.on).length}/19</b>`;
+  $("hintbtn").disabled=!(G.phase==="aim"&&G.turn==="P");
+  $("guidebtn").classList.toggle("on",G.guide); $("guidebtn").textContent=G.guide?"Aim guide on":"Aim guide off";
+  $("resetbtn").hidden=G.mode==="cpu";
+  $("resetbtn").textContent=G.mode==="lesson"?"Reset":"Re-rack";
+  $("sx").disabled=!(G.phase==="aim"&&G.turn==="P"); $("sx").value=G.sx;
+}
+function startCpu(){
+  G.mode="cpu"; G.score={P:0,C:0}; G.boardNo=1; G.breaker="P"; G.coachOn=G.diff==="easy"; G.guide=G.diff!=="hard";
+  newBoard(); show("game"); updateUI();
+}
+function newBoard(){
+  G.bodies=rack(); G.queen="board"; G.sx=37; G.turn=G.breaker; G.shots=0; $("overlay").hidden=true;
+  say(G.turn==="P"?"Your break. Pull back on the board to shoot. Tap Coach for advice.":"Computer breaks first.","Ref");
+  nextTurn();
+}
+function startPractice(){G.mode="practice";G.bodies=rack();G.queen="board";G.sx=37;G.turn="P";G.shots=0;G.coachOn=true;G.guide=true;show("game");$("overlay").hidden=true;nextTurn();say("Free practice: every shot is yours, any coin counts. Tap Coach any time.","Coach",true)}
+
+$("overlay").addEventListener("click",e=>{
+  const b=e.target.closest("[data-ov]"); if(!b)return; const a=b.dataset.ov;
+  if(a==="menu"){$("overlay").hidden=true;show("menu")}
+  if(a==="again"){startCpu()}
+  if(a==="next"){G.boardNo++;G.breaker=G.breaker==="P"?"C":"P";newBoard();updateUI()}
+  if(a==="rerack"){startPractice()}
+  if(a==="retry"){startLesson(G.lesson.i)}
+  if(a==="nextlesson"){startLesson(G.lesson.i+1)}
+  if(a==="lessons"){$("overlay").hidden=true;show("lessons")}
+});
+$("hintbtn").onclick=hint;
+$("guidebtn").onclick=()=>{G.guide=!G.guide;updateUI()};
+$("resetbtn").onclick=()=>{if(G.mode==="lesson"){setupLesson();say(G.lesson.L.tip,"Coach",true)}else startPractice()};
+$("menubtn").onclick=()=>{G.phase="idle";G.cpu=null;$("overlay").hidden=true;show("menu")};
+$("backbtn").onclick=()=>{ if(!$("menu").hidden){location.href="index.html";return} G.phase="idle";G.cpu=null;$("overlay").hidden=true;show(G.mode==="lesson"&&!$("game").hidden?"lessons":"menu")};
+document.querySelectorAll("[data-diff]").forEach(b=>b.onclick=()=>{G.diff=b.dataset.diff;document.querySelectorAll("[data-diff]").forEach(x=>x.setAttribute("aria-pressed",x===b))});
+document.querySelectorAll("[data-len]").forEach(b=>b.onclick=()=>{G.len=+b.dataset.len;document.querySelectorAll("[data-len]").forEach(x=>x.setAttribute("aria-pressed",x===b))});
+$("startcpu").onclick=startCpu;
+$("gopractice").onclick=startPractice;
+$("golessons").onclick=()=>show("lessons");
+$("gotips").onclick=()=>show("tips");
+window.addEventListener("resize",()=>{if(!$("game").hidden)sizeBoard()});
+
+function renderMenu(){
+  const w=stats.win,l=stats.loss;
+  const done=Object.keys(stats.lessons).length, st=Object.values(stats.lessons).reduce((a,b)=>a+b,0);
+  $("stats").innerHTML=`<span>Easy <b class="num">${w.easy}–${l.easy}</b></span><span>Medium <b class="num">${w.medium}–${l.medium}</b></span><span>Hard <b class="num">${w.hard}–${l.hard}</b></span><span>Lessons <b class="num">${done}/${LESSONS.length}</b> · <b class="num">${st}</b>★</span>`;
+  // little board in the hero
+  const hc=$("herocv"), hx=hc.getContext("2d"); hx.setTransform(1,0,0,1,0,0); hx.clearRect(0,0,300,300);
+  const sc=300/(B+2*FRAME); drawBoard(hx,sc); for(const b of rack())drawCoin(hx,sc,b);
+}
+function renderLessons(){
+  $("lessonlist").innerHTML=LESSONS.map((L,i)=>{const s=stats.lessons[L.id]||0;return `<button class="lesson" data-lesson="${i}"><span class="n">${i+1}</span><span class="t"><b>${L.title}</b><span>${L.sub}</span></span><span class="s" aria-label="${s} stars">${"★".repeat(s)}${"☆".repeat(3-s)}</span></button>`}).join("");
+}
+$("lessonlist").addEventListener("click",e=>{const b=e.target.closest("[data-lesson]");if(b)startLesson(+b.dataset.lesson)});
+
+/* real-board tips */
+const TIPS=[
+ ["Technique",[
+  ["Index-finger flick","The most common grip. Rest the heel of your hand and your little finger on the board, keep the index fingertip just behind the striker, and flick from the knuckle. The wrist and elbow stay still."],
+  ["Middle-finger flick","Some players get more power by bracing the index finger behind the middle finger and flicking with the middle. Try both and keep the one that's more accurate for you."],
+  ["Thumb shot","For coins close to your baseline or at awkward angles, flick with the thumb. It gives good control on short shots and on cuts towards the side pockets."],
+  ["Line up with your eye","Before every shot, put your eye over the line striker → coin → pocket. Most misses are aiming mistakes, not power mistakes."],
+  ["Follow through","Let the finger keep moving along the line after it hits the striker. Stopping short makes the striker wobble off line."]]],
+ ["The board",[
+  ["Powder","Sprinkle a thin, even layer of carrom powder (boric acid powder works) and spread it with your palm. Too much makes coins slide forever; too little makes them stick."],
+  ["Striker placement","The striker must sit on your baseline between the two red circles, touching both lines or covering the circle fully. It can't touch any coin."],
+  ["Don't touch coins behind the baseline directly","Coins on or behind your baseline can't be struck directly forward. Use a rebound off the top cushion or the side to reach them."]]],
+ ["Strategy",[
+  ["Break to keep the turn","A good break pockets a coin and spreads the rest. Hit the rack hard from the centre, slightly off the queen, so coins scatter towards the corners."],
+  ["Clear the easy coins first","Pot coins sitting near the pockets early. Coins in the middle get harder as the board fills with blockers."],
+  ["Take the queen with a plan","Only pocket the queen when you can see a coin you'll cover with next. An uncovered queen goes back and gives the opponent a chance."],
+  ["Leave nothing easy","If you can't pot, play soft: push coins close to your pockets and away from your opponent's easy angles. This is called a safety shot."],
+  ["Block their pocket","Leaving one of your coins in the mouth of a pocket your opponent needs can cost them several turns."],
+  ["Count the coins","Points go to the winner for every coin the loser still has on the board. Late in a board, finishing fast matters more than taking risks."]]],
+ ["Shots to practise",[
+  ["Straight","Striker, coin and pocket in one line. The first shot to master."],
+  ["Cut","Hit one side of the coin to send it in at an angle. Aim at the 'ghost striker' position."],
+  ["Rebound","Bounce off a cushion to go around blockers or to reach coins behind your baseline."],
+  ["Double","Hit one coin into another so the second one goes in. Useful when your coin is hidden behind another."],
+  ["Soft touch","Low power on coins near the pocket so the striker doesn't follow in."]]]
+];
+$("tips").innerHTML=TIPS.map(([h,list])=>`<section class="card"><div class="label">Tips</div><h2>${h}</h2>${list.map(([t,p])=>`<div class="tip"><h3>${t}</h3><p class="muted">${p}</p></div>`).join("")}</section>`).join("")+`<button class="btn primary block" id="tipslessons">Practise these in Lessons</button>`;
+$("tipslessons").onclick=()=>show("lessons");
+
+renderMenu();
+if(location.hash==="#lessons")show("lessons");
+/* test hook */
+window.__carrom={G,findShot,simulate,shoot,LESSONS,startLesson,startCpu,startPractice,hint,BY_P,BY_C,POCK,step,rack};
+})();
+</script>
+</body>
+</html>

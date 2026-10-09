@@ -24,6 +24,17 @@ Every push to `main` builds the app automatically. Open the repo's **Releases**,
 - **Undo last tap** fixes a mis-tap.
 - Leaderboard: 2 points per match win, ties broken by point difference. Separate Players and Teams tables.
 
+## Play (practice game)
+
+Tap **Play** in the app to open the carrom game:
+
+- **You vs CPU**: Easy, Medium or Hard; one board or first to 25. Real rules: queen must be covered, striker in a pocket is a foul, shots go forward only.
+- **Coach**: shows the best shot (straight, cut, thin cut or rebound), where to place the striker and how much power, and explains why. After each of your shots it tells you what went wrong.
+- **Lessons**: straight shot, cut shot, soft touch, rebound, rail shot, taking and covering the queen, and the break. Earn up to 3 stars.
+- **Real-board tips**: grip, flick, powder and strategy.
+
+Controls: slide the striker with the slider (or drag it), then touch the board and pull back like a catapult; let go to shoot.
+
 ## Edit, delete, reset
 
 - **Squad** tab: **Edit** renames a player, or renames a team and changes its players. **Delete** removes one (tap twice). Old match history keeps their names.
@@ -40,7 +51,8 @@ The app will be at `https://<your-username>.github.io/<repo-name>/`.
 
 ## Files
 
-- `index.html` – the whole app
+- `index.html` – the referee scorecard
+- `game.html` – the practice game (physics, computer opponent, coach, lessons)
 - `android/` – Android wrapper, built by `.github/workflows/build-apk.yml`
 - `sw.js` – offline support
 - `manifest.webmanifest`, `icons/` – home-screen install

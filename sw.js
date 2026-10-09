@@ -1,7 +1,7 @@
 // Offline support: the app works with no internet once opened once.
 // Scores are never sent anywhere; they live in the phone's local storage.
-const CACHE = "tent-hill-carrom-v1";
-const CORE = ["./", "./index.html", "./manifest.webmanifest", "./icons/icon-192.png", "./icons/icon-512.png"];
+const CACHE = "tent-hill-carrom-v2";
+const CORE = ["./", "./index.html", "./game.html", "./manifest.webmanifest", "./icons/icon-192.png", "./icons/icon-512.png"];
 
 self.addEventListener("install", e => {
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(CORE)).then(() => self.skipWaiting()));
@@ -22,8 +22,8 @@ self.addEventListener("fetch", e => {
   // App page: network first so updates arrive, cache when offline.
   if (req.mode === "navigate") {
     e.respondWith(
-      fetch(req).then(res => { const copy = res.clone(); caches.open(CACHE).then(c => c.put("./index.html", copy)); return res; })
-        .catch(() => caches.match("./index.html"))
+      fetch(req).then(res => { const copy = res.clone(); caches.open(CACHE).then(c => c.put(req, copy)); return res; })
+        .catch(() => caches.match(req, { ignoreSearch: true }).then(hit => hit || caches.match("./index.html")))
     );
     return;
   }

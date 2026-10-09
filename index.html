@@ -59,6 +59,7 @@ header.bar{position:sticky;top:0;z-index:5;background:var(--frame);color:var(--f
 .sync{margin-left:auto;font-size:11px;letter-spacing:.08em;text-transform:uppercase;opacity:.75}
 nav.tabs{display:flex;gap:4px;max-width:720px;margin:10px auto 0;overflow-x:auto}
 nav.tabs button{flex:1;background:none;border:0;color:var(--frame-ink);opacity:.65;padding:10px 6px 12px;font-weight:600;font-size:14px;border-bottom:3px solid transparent;white-space:nowrap}
+nav.tabs .playtab{flex:1;text-align:center;color:#FFD9A8;font-weight:800;font-size:14px;padding:10px 6px 12px;text-decoration:none;white-space:nowrap;border-bottom:3px solid transparent}
 nav.tabs button[aria-selected="true"]{opacity:1;border-bottom-color:var(--queen)}
 
 main{max-width:720px;margin:0 auto;padding-block:18px 48px;padding-inline:16px;display:flex;flex-direction:column;gap:18px}
@@ -206,6 +207,7 @@ select,input[type=text],input[type=number]{font:inherit;color:var(--ink);backgro
     <button role="tab" id="tab-table" data-tab="table" aria-selected="false">Leaderboard</button>
     <button role="tab" id="tab-history" data-tab="history" aria-selected="false">History</button>
     <button role="tab" id="tab-players" data-tab="players" aria-selected="false">Squad</button>
+    <a class="playtab" href="game.html">Play</a>
   </nav>
 </header>
 <main id="app"></main>
